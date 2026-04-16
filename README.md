@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Party Reservation System
 
-## Getting Started
+Next.js App Router 기반 프론트엔드 베이스 프로젝트다.  
+현재는 구현 코드를 미리 채우지 않고, 폴더 규칙과 디렉터리 골격만 먼저 잡아 둔 상태다.
 
-First, run the development server:
+## Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run typecheck
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Frontend Rules
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 기준 문서: `docs/frontend-conventions.md`
+- 라우팅은 `src/app`
+- 공용 컴포넌트는 `src/components`
+- 도메인 로직은 `src/features`
+- 전역 헬퍼는 `src/lib`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Initial Scaffold
 
-## Learn More
+```text
+src/
+  app/
+    (public)/
+    (admin)/
+  components/
+    ui/
+    layout/
+  features/
+    reservations/
+  lib/
+  types/
+```
 
-To learn more about Next.js, take a look at the following resources:
+홈 화면과 전역 스타일은 기본 Next 상태를 유지하고, 나머지 영역은 빈 폴더만 미리 만들어 두었다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 실제 기능을 만들기 시작하면 route file은 조합 역할만 남기고 세부 구현은 `_components`, `_lib`, `_actions`로 분리한다.
+- 새 도메인은 `src/features/<domain>`부터 만들고, 공용으로 올라갈 때만 `src/components`로 이동한다.
+- 구조 규칙이 바뀌면 `docs/frontend-conventions.md`를 먼저 수정한 뒤 코드에도 같은 기준을 적용한다.
