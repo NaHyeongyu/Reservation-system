@@ -33,3 +33,16 @@ export function getSupabaseSecretKey() {
 
   return secretKey;
 }
+
+export function getAdminSessionSecret() {
+  const secret =
+    process.env.ADMIN_SESSION_SECRET || process.env.SUPABASE_SECRET_KEY;
+
+  if (!secret) {
+    throw new Error(
+      "Missing admin session secret. Set ADMIN_SESSION_SECRET or SUPABASE_SECRET_KEY.",
+    );
+  }
+
+  return secret;
+}

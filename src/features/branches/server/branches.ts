@@ -2,7 +2,10 @@ import "server-only";
 
 import { cache } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { AdminSession } from "@/features/admin-auth/server/types";
+import type {
+  AdminBranchSnapshot,
+  AdminSession,
+} from "@/features/admin-auth/server/types";
 
 export type BranchListItem = {
   id: string;
@@ -68,7 +71,16 @@ export async function getBranchDetailForAdmin(admin: AdminSession, branchId: str
     return null;
   }
 
+  if (admin.currentBranch && admin.currentBranch.id === branchId) {
+    return fromAdminBranchSnapshot(admin.currentBranch);
+  }
+
   return getBranchDetailById(branchId);
+}
+
+export async function getAdminBranchSnapshotById(branchId: string) {
+  const branch = await getBranchDetailById(branchId);
+  return branch ? toAdminBranchSnapshot(branch) : null;
 }
 
 const getBranchDetailById = cache(async (branchId: string) => {
@@ -115,6 +127,39 @@ export async function createBranch(input: {
   return { ok: true as const, branchId: data.id };
 }
 
+export async function updateBranchBasicInfo(input: {
+  branchId: string;
+  name: string;
+  phone: string;
+  address: string;
+  instagramUrl: string;
+}) {
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from("branches")
+    .update({
+      name: input.name,
+      phone: input.phone || null,
+      address: input.address || null,
+      instagram_url: input.instagramUrl || null,
+    })
+    .eq("id", input.branchId)
+    .select("id, name, status, phone, address, instagram_url, created_at, updated_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    return {
+      ok: false as const,
+      message: error?.message ?? "지점 정보를 수정하지 못했습니다.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    branch: toAdminBranchSnapshot(data as BranchDetailItem),
+  };
+}
+
 export async function listBranchAdminAssignments(branchId: string) {
   const supabaseAdmin = createSupabaseAdminClient();
   const { data: assignments, error } = await supabaseAdmin
@@ -144,4 +189,30 @@ export async function listBranchAdminAssignments(branchId: string) {
     role: item.role,
     status: item.status,
   }));
+}
+
+function toAdminBranchSnapshot(branch: BranchDetailItem): AdminBranchSnapshot {
+  return {
+    id: branch.id,
+    name: branch.name,
+    status: branch.status,
+    phone: branch.phone,
+    address: branch.address,
+    instagramUrl: branch.instagram_url,
+    createdAt: branch.created_at,
+    updatedAt: branch.updated_at,
+  };
+}
+
+function fromAdminBranchSnapshot(branch: AdminBranchSnapshot): BranchDetailItem {
+  return {
+    id: branch.id,
+    name: branch.name,
+    status: branch.status,
+    phone: branch.phone,
+    address: branch.address,
+    instagram_url: branch.instagramUrl,
+    created_at: branch.createdAt,
+    updated_at: branch.updatedAt,
+  };
 }

@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { requireBranchAccessContext } from "@/features/admin-auth/server/admin-context";
+import { persistAdminSession } from "@/features/admin-auth/server/session";
+import { updateBranchBasicInfo } from "@/features/branches/server/branches";
 import {
   deleteBranchParty,
   toKstIso,
@@ -105,6 +107,47 @@ export async function deletePartyAction(formData: FormData) {
   }
 
   redirect("/admin/parties?deleted=1");
+}
+
+export async function updateBranchInfoAction(formData: FormData) {
+  const branchId = getFormValue(formData, "branchId");
+  const admin = await requireBranchAccessContext(branchId);
+  const returnParams = getPartyDetailReturnParams(formData);
+
+  const partyId = getFormValue(formData, "partyId");
+  const name = getFormValue(formData, "name");
+  const phone = getFormValue(formData, "phone");
+  const address = getFormValue(formData, "address");
+  const instagramUrl = getFormValue(formData, "instagramUrl");
+
+  if (!name) {
+    redirect(buildPartyDetailRedirect(partyId, returnParams, { error: "branch_update" }));
+  }
+
+  const result = await updateBranchBasicInfo({
+    branchId,
+    name,
+    phone,
+    address,
+    instagramUrl,
+  });
+
+  if (!result.ok) {
+    redirect(buildPartyDetailRedirect(partyId, returnParams, { error: "branch_update" }));
+  }
+
+  if (
+    admin.role === "branch_admin" &&
+    admin.currentBranch &&
+    admin.currentBranch.id === branchId
+  ) {
+    await persistAdminSession({
+      ...admin,
+      currentBranch: result.branch,
+    });
+  }
+
+  redirect(buildPartyDetailRedirect(partyId, returnParams, { updated: "branch" }));
 }
 
 function getFormValue(formData: FormData, key: string) {

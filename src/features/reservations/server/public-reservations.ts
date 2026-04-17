@@ -99,7 +99,7 @@ export async function listPublicPartyOptions() {
       .from("reservations")
       .select("*")
       .in("party_id", partyIds)
-      .in("status", ["pending", "confirmed", "completed"]),
+      .in("status", ["pending", "confirmed", "completed", "waitlisted"]),
   ]);
 
   const branchMap = new Map(
@@ -211,7 +211,7 @@ export async function createPublicReservation(
     .from("reservations")
     .select("*")
     .eq("party_id", party.id)
-    .in("status", ["pending", "confirmed", "completed"]);
+    .in("status", ["pending", "confirmed", "completed", "waitlisted"]);
 
   if (activeError) {
     return { ok: false, message: "신청 가능 인원을 확인하지 못했습니다." };

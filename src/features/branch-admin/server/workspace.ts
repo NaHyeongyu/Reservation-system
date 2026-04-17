@@ -110,6 +110,52 @@ export type BranchPartyTemplate = {
   femaleCapacity: number;
 };
 
+export type BranchDashboardDistributionItem = {
+  label: string;
+  count: number;
+  ratio: number;
+};
+
+export type BranchDashboardTrendItem = {
+  label: string;
+  count: number;
+};
+
+export type BranchDashboardQueueItem = {
+  id: string;
+  reservation_code: string;
+  reserver_name: string;
+  reserver_phone: string;
+  applicant_gender: "male" | "female" | null;
+  applicant_age_band: string;
+  submitted_at: string;
+  party_id: string | null;
+  party_title: string | null;
+  party_start_at: string | null;
+};
+
+export type BranchDashboardSnapshot = {
+  totalParties: number;
+  totalReservations: number;
+  pendingApplicants: number;
+  waitlistApplicants: number;
+  todayReservations: number;
+  todayParties: number;
+  todayParticipants: number;
+  todayCapacity: number;
+  weekParties: number;
+  averageFillRate: number;
+  confirmationRate: number;
+  upcomingPartyRows: BranchPartyItem[];
+  pendingQueueRows: BranchDashboardQueueItem[];
+  waitlistQueueRows: BranchDashboardQueueItem[];
+  referralRows: BranchDashboardDistributionItem[];
+  genderRows: BranchDashboardDistributionItem[];
+  ageRows: BranchDashboardDistributionItem[];
+  weekdayTrend: BranchDashboardTrendItem[];
+  hourTrend: BranchDashboardTrendItem[];
+};
+
 const BRANCH_PARTY_SNAPSHOT_SELECT = [
   "id",
   "title",
@@ -146,6 +192,21 @@ type BasePartyRow = {
   show_headcount?: boolean | null;
 };
 
+type DashboardReservationRow = {
+  id: string;
+  reservation_code: string;
+  reserver_name: string;
+  reserver_phone: string;
+  status: BranchApplicantItem["status"];
+  submitted_at: string;
+  applicant_gender: "male" | "female" | null;
+  applicant_birth_date: string | null;
+  referral_sources: string[];
+  party_id: string | null;
+  party_title: string | null;
+  party_start_at: string | null;
+};
+
 export async function getBranchWorkspace(admin: AdminSession) {
   if (admin.role === "super_admin") {
     redirect("/admin/branches");
@@ -166,45 +227,89 @@ export async function getBranchWorkspace(admin: AdminSession) {
   return branch;
 }
 
-export async function getBranchDashboardSnapshot(branchId: string) {
+export async function getBranchDashboardSnapshot(
+  branchId: string,
+): Promise<BranchDashboardSnapshot> {
   const supabaseAdmin = createSupabaseAdminClient();
-  const now = new Date().toISOString();
+  const now = new Date();
+  const todayKey = getKstDateKey(now);
+  const weekLimitIso = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7).toISOString();
 
   const [
     totalPartiesResult,
-    upcomingPartiesResult,
-    totalApplicantsResult,
-    pendingApplicantsResult,
     upcomingParties,
-    recentApplicants,
+    todayPartyRows,
+    reservationRowsRaw,
   ] = await Promise.all([
     supabaseAdmin.from("parties").select("id", { count: "exact", head: true }).eq("branch_id", branchId),
-    supabaseAdmin
-      .from("parties")
-      .select("id", { count: "exact", head: true })
-      .eq("branch_id", branchId)
-      .gte("start_at", now)
-      .in("status", ["draft", "published", "closed"]),
-    supabaseAdmin
-      .from("reservations")
-      .select("id", { count: "exact", head: true })
-      .eq("branch_id", branchId),
-    supabaseAdmin
-      .from("reservations")
-      .select("id", { count: "exact", head: true })
-      .eq("branch_id", branchId)
-      .eq("status", "pending"),
     listBranchParties(branchId, 5, true),
-    listBranchApplicants(branchId, 6, { activeOnly: true }),
+    listBranchPartiesOnDate(branchId, todayKey),
+    supabaseAdmin
+      .from("reservations")
+      .select(
+        "id, reservation_code, reserver_name, reserver_phone, status, submitted_at, applicant_gender, applicant_birth_date, referral_sources, party_id, party:parties!reservations_party_branch_fk(title, start_at)",
+      )
+      .eq("branch_id", branchId)
+      .order("submitted_at", { ascending: true }),
   ]);
+
+  const reservationRows = (reservationRowsRaw?.data ?? [])
+    .map((item) => toDashboardReservationRow(item))
+    .filter((item): item is DashboardReservationRow => item !== null);
+  const pendingQueueRows = reservationRows
+    .filter((item) => item.status === "pending")
+    .sort((left, right) => left.submitted_at.localeCompare(right.submitted_at))
+    .slice(0, 8)
+    .map(toDashboardQueueItem);
+  const waitlistQueueRows = reservationRows
+    .filter((item) => item.status === "waitlisted")
+    .sort((left, right) => left.submitted_at.localeCompare(right.submitted_at))
+    .slice(0, 8)
+    .map(toDashboardQueueItem);
+  const totalReservations = reservationRows.length;
+  const pendingApplicants = reservationRows.filter((item) => item.status === "pending").length;
+  const waitlistApplicants = reservationRows.filter((item) => item.status === "waitlisted").length;
+  const todayReservations = reservationRows.filter((item) =>
+    isSameKstDate(item.submitted_at, todayKey),
+  ).length;
+  const confirmedReservations = reservationRows.filter(
+    (item) => item.status === "confirmed" || item.status === "completed",
+  ).length;
+  const todayParticipants = todayPartyRows.reduce(
+    (total, party) => total + party.male_participant_count + party.female_participant_count,
+    0,
+  );
+  const todayCapacity = todayPartyRows.reduce((total, party) => total + party.capacity, 0);
+  const weekParties = upcomingParties.filter((party) => party.start_at <= weekLimitIso).length;
+  const averageFillRate =
+    upcomingParties.length > 0
+      ? upcomingParties.reduce((total, party) => {
+          const participants = party.male_participant_count + party.female_participant_count;
+          return total + (party.capacity > 0 ? participants / party.capacity : 0);
+        }, 0) / upcomingParties.length
+      : 0;
+  const confirmationRate = totalReservations > 0 ? confirmedReservations / totalReservations : 0;
 
   return {
     totalParties: totalPartiesResult.count ?? 0,
-    upcomingParties: upcomingPartiesResult.count ?? 0,
-    totalApplicants: totalApplicantsResult.count ?? 0,
-    pendingApplicants: pendingApplicantsResult.count ?? 0,
+    totalReservations,
+    pendingApplicants,
+    waitlistApplicants,
+    todayReservations,
+    todayParties: todayPartyRows.length,
+    todayParticipants,
+    todayCapacity,
+    weekParties,
+    averageFillRate,
+    confirmationRate,
     upcomingPartyRows: upcomingParties,
-    recentApplicantRows: recentApplicants,
+    pendingQueueRows,
+    waitlistQueueRows,
+    referralRows: buildReferralRows(reservationRows),
+    genderRows: buildGenderRows(reservationRows),
+    ageRows: buildAgeRows(reservationRows),
+    weekdayTrend: buildWeekdayTrend(reservationRows),
+    hourTrend: buildHourTrend(reservationRows),
   };
 }
 
@@ -1016,6 +1121,169 @@ function getRelatedParty(
   return null;
 }
 
+function toDashboardReservationRow(value: unknown): DashboardReservationRow | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const row = value as {
+    id?: unknown;
+    reservation_code?: unknown;
+    reserver_name?: unknown;
+    reserver_phone?: unknown;
+    status?: unknown;
+    submitted_at?: unknown;
+    applicant_gender?: unknown;
+    applicant_birth_date?: unknown;
+    referral_sources?: unknown;
+    party?: unknown;
+  };
+  const party = getRelatedParty(row.party);
+
+  if (
+    typeof row.id !== "string" ||
+    typeof row.reservation_code !== "string" ||
+    typeof row.reserver_name !== "string" ||
+    typeof row.reserver_phone !== "string" ||
+    typeof row.status !== "string" ||
+    typeof row.submitted_at !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    reservation_code: row.reservation_code,
+    reserver_name: row.reserver_name,
+    reserver_phone: row.reserver_phone,
+    status: row.status as BranchApplicantItem["status"],
+    submitted_at: row.submitted_at,
+    applicant_gender:
+      row.applicant_gender === "male" || row.applicant_gender === "female"
+        ? row.applicant_gender
+        : null,
+    applicant_birth_date:
+      typeof row.applicant_birth_date === "string" ? row.applicant_birth_date : null,
+    referral_sources: Array.isArray(row.referral_sources)
+      ? row.referral_sources.filter(
+          (item: unknown): item is string => typeof item === "string" && item.trim().length > 0,
+        )
+      : [],
+    party_id:
+      typeof (row as { party_id?: unknown }).party_id === "string"
+        ? (row as { party_id: string }).party_id
+        : null,
+    party_title: party?.title ?? null,
+    party_start_at: party?.start_at ?? null,
+  };
+}
+
+function toDashboardQueueItem(row: DashboardReservationRow): BranchDashboardQueueItem {
+  return {
+    id: row.id,
+    reservation_code: row.reservation_code,
+    reserver_name: row.reserver_name,
+    reserver_phone: row.reserver_phone,
+    applicant_gender: row.applicant_gender,
+    applicant_age_band: getAgeBandLabel(row.applicant_birth_date),
+    submitted_at: row.submitted_at,
+    party_id: row.party_id,
+    party_title: row.party_title,
+    party_start_at: row.party_start_at,
+  };
+}
+
+function buildReferralRows(
+  reservations: DashboardReservationRow[],
+): BranchDashboardDistributionItem[] {
+  const counts = new Map<string, number>();
+
+  for (const row of reservations) {
+    for (const source of row.referral_sources) {
+      counts.set(source, (counts.get(source) ?? 0) + 1);
+    }
+  }
+
+  const total = [...counts.values()].reduce((sum, value) => sum + value, 0);
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .map(([label, count]) => ({
+      label,
+      count,
+      ratio: total > 0 ? count / total : 0,
+    }));
+}
+
+function buildGenderRows(
+  reservations: DashboardReservationRow[],
+): BranchDashboardDistributionItem[] {
+  const male = reservations.filter((item) => item.applicant_gender === "male").length;
+  const female = reservations.filter((item) => item.applicant_gender === "female").length;
+  const total = male + female;
+
+  return [
+    { label: "남", count: male, ratio: total > 0 ? male / total : 0 },
+    { label: "여", count: female, ratio: total > 0 ? female / total : 0 },
+  ];
+}
+
+function buildAgeRows(
+  reservations: DashboardReservationRow[],
+): BranchDashboardDistributionItem[] {
+  const labels = ["20-24", "25-29", "30-34", "35+"];
+  const counts = new Map<string, number>(labels.map((label) => [label, 0]));
+
+  for (const row of reservations) {
+    const ageBand = getAgeBandLabel(row.applicant_birth_date);
+    if (counts.has(ageBand)) {
+      counts.set(ageBand, (counts.get(ageBand) ?? 0) + 1);
+    }
+  }
+
+  const total = [...counts.values()].reduce((sum, value) => sum + value, 0);
+
+  return labels.map((label) => ({
+    label,
+    count: counts.get(label) ?? 0,
+    ratio: total > 0 ? (counts.get(label) ?? 0) / total : 0,
+  }));
+}
+
+function buildWeekdayTrend(
+  reservations: DashboardReservationRow[],
+): BranchDashboardTrendItem[] {
+  const labels = ["월", "화", "수", "목", "금", "토", "일"];
+  const counts = Array.from({ length: labels.length }, () => 0);
+
+  for (const row of reservations) {
+    const weekdayIndex = getKstWeekdayIndex(row.submitted_at);
+    counts[weekdayIndex] += 1;
+  }
+
+  return labels.map((label, index) => ({
+    label,
+    count: counts[index],
+  }));
+}
+
+function buildHourTrend(
+  reservations: DashboardReservationRow[],
+): BranchDashboardTrendItem[] {
+  const counts = Array.from({ length: 24 }, () => 0);
+
+  for (const row of reservations) {
+    const hour = getKstHour(row.submitted_at);
+    counts[hour] += 1;
+  }
+
+  return counts.map((count, hour) => ({
+    label: `${String(hour).padStart(2, "0")}시`,
+    count,
+  }));
+}
+
 export async function updatePartyHeadcountVisibility(input: {
   branchId: string;
   partyId: string;
@@ -1177,6 +1445,95 @@ function addDays(date: string, days: number) {
   const day = String(current.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getKstDateKey(value: Date | string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(typeof value === "string" ? new Date(value) : value);
+}
+
+function isSameKstDate(value: string, dateKey: string) {
+  return getKstDateKey(value) === dateKey;
+}
+
+function getKstWeekdayIndex(value: string) {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    weekday: "short",
+  }).format(new Date(value));
+
+  return weekday === "Mon"
+    ? 0
+    : weekday === "Tue"
+      ? 1
+      : weekday === "Wed"
+        ? 2
+        : weekday === "Thu"
+          ? 3
+          : weekday === "Fri"
+            ? 4
+            : weekday === "Sat"
+              ? 5
+              : 6;
+}
+
+function getKstHour(value: string) {
+  return Number.parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Seoul",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(value)),
+    10,
+  );
+}
+
+function getAgeBandLabel(birthDate: string | null) {
+  const age = getKoreanAge(birthDate);
+
+  if (age === null) {
+    return "-";
+  }
+
+  if (age < 25) {
+    return "20-24";
+  }
+
+  if (age < 30) {
+    return "25-29";
+  }
+
+  if (age < 35) {
+    return "30-34";
+  }
+
+  return "35+";
+}
+
+function getKoreanAge(birthDate: string | null) {
+  if (!birthDate) {
+    return null;
+  }
+
+  const todayKey = getKstDateKey(new Date());
+  const [todayYear, todayMonth, todayDay] = todayKey.split("-").map(Number);
+  const [birthYear, birthMonth, birthDay] = birthDate.split("-").map(Number);
+
+  if (!birthYear || !birthMonth || !birthDay) {
+    return null;
+  }
+
+  let age = todayYear - birthYear;
+
+  if (todayMonth < birthMonth || (todayMonth === birthMonth && todayDay < birthDay)) {
+    age -= 1;
+  }
+
+  return age;
 }
 
 function parseDateKey(value: string) {

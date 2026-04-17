@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import {
   deletePartyAction,
   updatePartyBasicInfoAction,
@@ -68,7 +69,7 @@ export function PartySettingsDialog({
         onClick={() => setOpen(true)}
         className="inline-flex items-center justify-center rounded-[14px] border border-[#2f5c82] bg-[#0f2231] px-4 py-2.5 text-xs font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]"
       >
-        수정
+        파티 수정
       </button>
 
       {open ? (
@@ -262,7 +263,7 @@ function Field({
 }: {
   label: string;
   htmlFor: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="space-y-2">
@@ -277,17 +278,30 @@ function Field({
   );
 }
 
-function SubmitButton({ children, className }: { children: React.ReactNode; className: string }) {
-  return <button type="submit" className={className}>{children}</button>;
-}
+function SubmitButton({ children, className }: { children: ReactNode; className: string }) {
+  const { pending } = useFormStatus();
 
-function DeleteButton() {
   return (
     <button
       type="submit"
-      className="inline-flex w-full items-center justify-center rounded-[16px] border border-[#a63a50] bg-[#7a2234] px-4 py-3 text-sm font-semibold text-[#fff3f6] shadow-[0_8px_20px_rgba(122,34,52,0.32)] transition hover:border-[#d85f78] hover:bg-[#962a40] hover:text-white"
+      disabled={pending}
+      className={`${className} disabled:cursor-not-allowed disabled:border-[#253543] disabled:bg-[#10161d] disabled:text-[#607282]`}
     >
-      파티 삭제
+      {pending ? "저장 중..." : children}
+    </button>
+  );
+}
+
+function DeleteButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex w-full items-center justify-center rounded-[16px] border border-[#a63a50] bg-[#7a2234] px-4 py-3 text-sm font-semibold text-[#fff3f6] shadow-[0_8px_20px_rgba(122,34,52,0.32)] transition hover:border-[#d85f78] hover:bg-[#962a40] hover:text-white disabled:cursor-not-allowed disabled:border-[#5d3941] disabled:bg-[#2a161c] disabled:text-[#9c7b84]"
+    >
+      {pending ? "삭제 중..." : "파티 삭제"}
     </button>
   );
 }

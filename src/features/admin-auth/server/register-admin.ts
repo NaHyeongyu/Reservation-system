@@ -2,11 +2,13 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAdminBranchSnapshotById } from "@/features/branches/server/branches";
 import {
   isValidAdminLoginId,
   normalizeAdminLoginId,
   toAdminAuthEmail,
 } from "./credentials";
+import { persistAdminSession } from "./session";
 
 export async function hasAnyAdminUsers() {
   const supabaseAdmin = createSupabaseAdminClient();
@@ -95,7 +97,7 @@ export async function signInAdminWithLoginId(loginIdInput: string, password: str
   const supabaseAdmin = createSupabaseAdminClient();
   const { data: adminUser } = await supabaseAdmin
     .from("admin_users")
-    .select("status")
+    .select("id, auth_user_id, login_id, role, status")
     .eq("auth_user_id", signInResult.data.user.id)
     .maybeSingle();
 
@@ -103,6 +105,23 @@ export async function signInAdminWithLoginId(loginIdInput: string, password: str
     await supabase.auth.signOut();
     return { ok: false as const, message: "비활성화된 계정입니다." };
   }
+
+  const branchIds =
+    adminUser.role === "super_admin" ? [] : await getBranchIdsForAdmin(adminUser.id);
+  const currentBranch =
+    adminUser.role === "branch_admin" && branchIds[0]
+      ? await getAdminBranchSnapshotById(branchIds[0])
+      : null;
+
+  await persistAdminSession({
+    adminUserId: adminUser.id,
+    authUserId: adminUser.auth_user_id,
+    loginId: adminUser.login_id,
+    role: adminUser.role,
+    status: adminUser.status,
+    branchIds,
+    currentBranch,
+  });
 
   return { ok: true as const };
 }
@@ -172,4 +191,18 @@ export async function createBranchAdminAccount(input: {
   }
 
   return { ok: true as const };
+}
+
+async function getBranchIdsForAdmin(adminUserId: string) {
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from("admin_user_branch_access")
+    .select("branch_id")
+    .eq("admin_user_id", adminUserId);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((item) => item.branch_id);
 }

@@ -2,9 +2,11 @@ import "server-only";
 
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { getAdminBranchSnapshotById } from "@/features/branches/server/branches";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AdminSession, AdminStatus } from "./types";
+import { getAdminSessionFromCookie } from "./session";
 
 const getCurrentAuthUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
@@ -35,6 +37,24 @@ const getAdminUserByAuthUserId = cache(async (authUserId: string) => {
 });
 
 export const getCurrentAdminContext = cache(async (): Promise<AdminSession | null> => {
+  const cookieSession = await getAdminSessionFromCookie();
+
+  if (cookieSession) {
+    if (
+      cookieSession.role === "branch_admin" &&
+      !cookieSession.currentBranch &&
+      cookieSession.branchIds[0]
+    ) {
+      const currentBranch = await getAdminBranchSnapshotById(cookieSession.branchIds[0]);
+      return {
+        ...cookieSession,
+        currentBranch,
+      };
+    }
+
+    return cookieSession;
+  }
+
   const user = await getCurrentAuthUser();
 
   if (!user) {
@@ -49,6 +69,10 @@ export const getCurrentAdminContext = cache(async (): Promise<AdminSession | nul
 
   const branchIds =
     adminUser.role === "super_admin" ? [] : await getBranchIdsForAdmin(adminUser.id);
+  const currentBranch =
+    adminUser.role === "branch_admin" && branchIds[0]
+      ? await getAdminBranchSnapshotById(branchIds[0])
+      : null;
 
   return {
     adminUserId: adminUser.id,
@@ -57,6 +81,7 @@ export const getCurrentAdminContext = cache(async (): Promise<AdminSession | nul
     role: adminUser.role,
     status: adminUser.status as AdminStatus,
     branchIds,
+    currentBranch,
   };
 });
 

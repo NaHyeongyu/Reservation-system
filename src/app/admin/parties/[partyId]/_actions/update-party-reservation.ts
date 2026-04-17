@@ -37,6 +37,36 @@ export async function confirmPartyReservationAction(formData: FormData) {
   redirect(buildPartyDetailRedirect(partyId, returnParams, { updated: "confirmed" }));
 }
 
+export async function updatePartyReservationAction(input: {
+  branchId: string;
+  partyId: string;
+  reservationId: string;
+  nextStatus: "confirmed" | "cancelled";
+}) {
+  await requireBranchAccessContext(input.branchId);
+
+  const result = await updatePartyReservationStatus(input);
+
+  if (!result.ok) {
+    return {
+      ok: false as const,
+      reason: result.reason ?? "unknown",
+      message:
+        result.reason === "capacity_full"
+          ? "이미 다 찼습니다."
+          : result.reason === "male_full"
+          ? "남자 정원이 다 찼습니다."
+          : result.reason === "female_full"
+          ? "여자 정원이 다 찼습니다."
+          : result.message,
+    };
+  }
+
+  return {
+    ok: true as const,
+  };
+}
+
 export async function cancelPartyReservationAction(formData: FormData) {
   const branchId = getFormValue(formData, "branchId");
   await requireBranchAccessContext(branchId);
