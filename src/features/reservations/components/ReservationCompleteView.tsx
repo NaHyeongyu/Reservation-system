@@ -76,6 +76,11 @@ export function ReservationCompleteView({
           <h1 className="mt-3 text-[28px] font-black tracking-[0.01em] text-brand-white">
             {isWaitlisted ? "대기 신청이 접수되었습니다" : "신청서가 제출되었습니다"}
           </h1>
+          {isWaitlisted ? (
+            <p className="mt-3 text-sm leading-6 text-muted">
+              신청이 몰려 같은 성별 접수가 먼저 마감되어 현재는 대기자로 접수되었습니다.
+            </p>
+          ) : null}
         </div>
 
         <section className="mt-8 w-full rounded-[26px] border border-line bg-surface px-4 py-4 text-left">

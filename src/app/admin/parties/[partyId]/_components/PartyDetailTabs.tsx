@@ -43,7 +43,11 @@ export function PartyDetailTabs({
               const isActive = activeTab === tab.id;
               const detail =
                 tab.id === "participants"
-                  ? `${participantCount}/${participantCapacity}명 (남${maleCapacity}, 여${femaleCapacity})`
+                  ? `${participantCount}/${participantCapacity}명`
+                  : null;
+              const extraDetail =
+                tab.id === "participants"
+                  ? `남${maleCapacity} · 여${femaleCapacity}`
                   : null;
 
               return (
@@ -62,6 +66,11 @@ export function PartyDetailTabs({
                   {detail ? (
                     <span className="mt-1 text-[11px] font-medium opacity-80">
                       {detail}
+                    </span>
+                  ) : null}
+                  {extraDetail ? (
+                    <span className="mt-0.5 hidden text-[10px] font-medium opacity-70 sm:block">
+                      {extraDetail}
                     </span>
                   ) : null}
                 </button>

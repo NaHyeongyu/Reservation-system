@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Party Reservation",
+  title: "지문인식 예약 신청 서비스",
   description: "로그인 없이 바로 날짜를 확인하는 예약 캘린더",
+  icons: {
+    icon: "/jimoon_logo.png",
+    apple: "/jimoon_logo.png",
+    shortcut: "/jimoon_logo.png",
+  },
 };
 
 export default function RootLayout({
