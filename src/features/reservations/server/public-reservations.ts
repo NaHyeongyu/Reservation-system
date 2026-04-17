@@ -70,6 +70,11 @@ type ReservationRow = {
   privacy_agreed_at?: string | null;
 };
 
+type CreatePublicReservationRow = {
+  reservation_code: string;
+  reservation_status: PublicReservationCompleteData["reservationStatus"];
+};
+
 export async function listPublicPartyOptions() {
   noStore();
   const supabaseAdmin = createSupabaseAdminClient();
@@ -99,7 +104,7 @@ export async function listPublicPartyOptions() {
       .from("reservations")
       .select("*")
       .in("party_id", partyIds)
-      .in("status", ["pending", "confirmed", "completed", "waitlisted"]),
+      .in("status", ["pending", "confirmed", "completed"]),
   ]);
 
   const branchMap = new Map(
@@ -118,7 +123,6 @@ export async function listPublicPartyOptions() {
       const counts = counterMap.get(party.id) ?? { male: 0, female: 0 };
       const maleApplied = counts.male;
       const femaleApplied = counts.female;
-      const totalApplied = maleApplied + femaleApplied;
 
       return {
         id: party.id,
@@ -135,7 +139,9 @@ export async function listPublicPartyOptions() {
         maleApplied,
         femaleApplied,
         showHeadcount: party.show_headcount ?? true,
-        waitlistOnly: totalApplied >= party.capacity,
+        waitlistOnly:
+          maleApplied >= party.male_capacity &&
+          femaleApplied >= party.female_capacity,
       } satisfies PublicPartyOption;
     })
     .filter((item): item is PublicPartyOption => item !== null);
@@ -150,12 +156,6 @@ export async function getPublicPartyOption(partyId: string) {
 export async function createPublicReservation(
   input: CreatePublicReservationInput,
 ): Promise<PublicReservationCreateResult> {
-  const party = await getPublicPartyOption(input.partyId);
-
-  if (!party) {
-    return { ok: false, message: "신청 가능한 파티를 찾지 못했습니다." };
-  }
-
   if (!input.partyTermsAgreed || !input.privacyAgreed) {
     return { ok: false, message: "필수 동의 항목을 확인하세요." };
   }
@@ -183,104 +183,37 @@ export async function createPublicReservation(
     return { ok: false, message: "입금 정보를 입력하세요." };
   }
 
-  if (new Date(party.startAt).getTime() <= Date.now()) {
-    return { ok: false, message: "마감된 파티입니다." };
-  }
-
   const supabaseAdmin = createSupabaseAdminClient();
-  const { data: blockingReservations, error: blockingError } = await supabaseAdmin
-    .from("reservations")
-    .select("id, reserver_phone")
-    .eq("party_id", party.id)
-    .in("status", ["pending", "confirmed", "waitlisted"]);
-
-  if (blockingError) {
-    return { ok: false, message: "기존 신청 정보를 확인하지 못했습니다." };
-  }
-
-  const hasDuplicatePhone = (blockingReservations ?? []).some(
-    (reservation) =>
-      normalizePhoneNumber(reservation.reserver_phone) === normalizedPhone,
-  );
-
-  if (hasDuplicatePhone) {
-    return { ok: false, message: "같은 파티에는 한 번만 신청할 수 있습니다." };
-  }
-
-  const { data: activeReservations, error: activeError } = await supabaseAdmin
-    .from("reservations")
-    .select("*")
-    .eq("party_id", party.id)
-    .in("status", ["pending", "confirmed", "completed", "waitlisted"]);
-
-  if (activeError) {
-    return { ok: false, message: "신청 가능 인원을 확인하지 못했습니다." };
-  }
-
-  const genderCounts = buildGenderCounter((activeReservations ?? []) as ReservationRow[]);
-  const totalAppliedCount = (activeReservations ?? []).length;
-  const appliedCount = input.gender === "male" ? genderCounts.male : genderCounts.female;
-  const availableCapacity =
-    input.gender === "male" ? party.maleCapacity : party.femaleCapacity;
-  const shouldWaitlist =
-    totalAppliedCount >= party.capacity || appliedCount >= availableCapacity;
-  const reservationStatus = shouldWaitlist ? "waitlisted" : "pending";
-  const now = new Date().toISOString();
-
   const { data: reservation, error: reservationError } = await supabaseAdmin
-    .from("reservations")
-    .insert({
-      branch_id: party.branchId,
-      party_id: party.id,
-      source: "web",
-      status: reservationStatus,
-      reserver_name: normalizedName,
-      reserver_phone: normalizedPhone,
-      participant_count: 1,
-      applicant_gender: input.gender,
-      applicant_birth_date: birthDate,
-      bank_name: bankName,
-      account_number: accountNumber,
-      referral_sources: referralSources,
-      party_terms_agreed: true,
-      privacy_agreed: true,
-      party_terms_agreed_at: now,
-      privacy_agreed_at: now,
+    .rpc("create_public_reservation_atomic", {
+      p_party_id: input.partyId,
+      p_name: normalizedName,
+      p_phone: normalizedPhone,
+      p_gender: input.gender,
+      p_birth_date: birthDate,
+      p_bank_name: bankName,
+      p_account_number: accountNumber,
+      p_referral_sources: referralSources,
+      p_party_terms_agreed: true,
+      p_privacy_agreed: true,
+      p_source: "web",
     })
-    .select("id, reservation_code, status")
     .single();
 
   if (reservationError || !reservation) {
     return {
       ok: false,
-      message: isMissingPublicReservationColumnError(reservationError?.message)
-        ? "DB 스키마 업데이트가 필요합니다. migration을 먼저 적용하세요."
-        : reservationError?.message ?? "신청서를 저장하지 못했습니다.",
+      message: mapCreatePublicReservationError(reservationError?.message),
     };
   }
 
-  const { error: participantError } = await supabaseAdmin.from("participants").insert({
-    reservation_id: reservation.id,
-    full_name: normalizedName,
-    phone: normalizedPhone,
-    is_primary: true,
-    status: "active",
-  });
-
-  if (participantError) {
-    await supabaseAdmin.from("reservations").delete().eq("id", reservation.id);
-
-    return {
-      ok: false,
-      message: participantError.message ?? "신청자 정보를 저장하지 못했습니다.",
-    };
-  }
+  const reservationRow = reservation as CreatePublicReservationRow;
 
   return {
     ok: true,
-    reservationCode: reservation.reservation_code,
+    reservationCode: reservationRow.reservation_code,
     reservationStatus:
-      reservation.status === "waitlisted" ? "waitlisted" : "pending",
+      reservationRow.reservation_status === "waitlisted" ? "waitlisted" : "pending",
   };
 }
 
@@ -350,23 +283,6 @@ function buildGenderCounterMap(rows: ReservationRow[]) {
   return counterMap;
 }
 
-function buildGenderCounter(rows: ReservationRow[]) {
-  return rows.reduce(
-    (totals, row) => {
-      if (row.applicant_gender === "male") {
-        totals.male += 1;
-      }
-
-      if (row.applicant_gender === "female") {
-        totals.female += 1;
-      }
-
-      return totals;
-    },
-    { male: 0, female: 0 },
-  );
-}
-
 function normalizePhoneNumber(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -413,6 +329,52 @@ function isMissingPublicReservationColumnError(message: string | undefined) {
     "party_terms_agreed",
     "privacy_agreed",
   ].some((column) => message.includes(column));
+}
+
+function isMissingPublicReservationFunctionError(message: string | undefined) {
+  if (!message) {
+    return false;
+  }
+
+  return (
+    message.includes("create_public_reservation_atomic") ||
+    message.includes("Could not find the function")
+  );
+}
+
+function mapCreatePublicReservationError(message: string | undefined) {
+  if (!message) {
+    return "신청서를 저장하지 못했습니다.";
+  }
+
+  if (message.includes("DUPLICATE_PHONE")) {
+    return "같은 파티에는 한 번만 신청할 수 있습니다.";
+  }
+
+  if (message.includes("PARTY_NOT_AVAILABLE")) {
+    return "신청 가능한 파티를 찾지 못했습니다.";
+  }
+
+  if (message.includes("INVALID_GENDER")) {
+    return "성별을 다시 확인하세요.";
+  }
+
+  if (message.includes("INVALID_PHONE")) {
+    return "전화번호 형식을 확인하세요.";
+  }
+
+  if (message.includes("EMPTY_NAME")) {
+    return "이름을 입력하세요.";
+  }
+
+  if (
+    isMissingPublicReservationColumnError(message) ||
+    isMissingPublicReservationFunctionError(message)
+  ) {
+    return "DB 스키마 업데이트가 필요합니다. migration을 먼저 적용하세요.";
+  }
+
+  return message;
 }
 
 function normalizeReservationStatus(

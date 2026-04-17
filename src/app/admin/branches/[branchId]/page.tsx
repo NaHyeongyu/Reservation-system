@@ -92,12 +92,12 @@ export default async function AdminBranchDetailPage({ params, searchParams }: Ad
             <div className="rounded-[22px] border border-dashed border-[#22303d] bg-[#0f1822] px-4 py-8 text-center text-sm text-[#8ea1b2]">연결된 관리자가 없습니다.</div>
           ) : (
             branchAdmins.map((assignment) => (
-              <div key={assignment.adminUserId} className="flex items-center justify-between rounded-[22px] border border-[#18222d] bg-[#0f1822] px-4 py-4">
-                <div>
-                  <p className="text-base font-semibold text-white">{assignment.loginId}</p>
+              <div key={assignment.adminUserId} className="flex flex-col gap-3 rounded-[22px] border border-[#18222d] bg-[#0f1822] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-white">{assignment.loginId}</p>
                   <p className="mt-1 text-sm text-[#8ea1b2]">{formatAdminRole(assignment.role)}</p>
                 </div>
-                <span className="rounded-full border border-[#285c43] bg-[#0f2018] px-3 py-1 font-mono text-[11px] tracking-[0.16em] uppercase text-[#8ee2b4]">
+                <span className="inline-flex w-fit rounded-full border border-[#285c43] bg-[#0f2018] px-3 py-1 font-mono text-[11px] tracking-[0.16em] uppercase text-[#8ee2b4]">
                   {formatAdminUserStatus(assignment.status)}
                 </span>
               </div>

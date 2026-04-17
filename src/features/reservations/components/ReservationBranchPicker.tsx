@@ -50,6 +50,8 @@ export function ReservationBranchPicker({
       <div className="flex flex-col gap-3">
         {parties.map((party) => {
           const isSelected = party.id === selectedPartyId;
+          const isMaleWaitlistOnly = party.maleApplied >= party.maleCapacity;
+          const isFemaleWaitlistOnly = party.femaleApplied >= party.femaleCapacity;
 
           return (
             <button
@@ -136,8 +138,19 @@ export function ReservationBranchPicker({
                       </div>
                     ) : null}
 
-                    {party.waitlistOnly ? (
-                      <p className="text-sm text-brand-red">대기자 신청</p>
+                    {isMaleWaitlistOnly || isFemaleWaitlistOnly ? (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {isMaleWaitlistOnly ? (
+                          <span className="inline-flex items-center rounded-full border border-[#5a2430] bg-[#1a0d12] px-3 py-1 text-xs font-medium text-[#ffd7de]">
+                            남 대기자 신청
+                          </span>
+                        ) : null}
+                        {isFemaleWaitlistOnly ? (
+                          <span className="inline-flex items-center rounded-full border border-[#5a2430] bg-[#1a0d12] px-3 py-1 text-xs font-medium text-[#ffd7de]">
+                            여 대기자 신청
+                          </span>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </div>

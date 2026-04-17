@@ -337,7 +337,7 @@ function QueuePanel({
               open={index === 0}
               className="group overflow-hidden rounded-[24px] border border-[#18222d] bg-[#0f1822]"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-[#17212b] px-4 py-4 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-[#17212b] px-4 py-4 sm:flex-row sm:items-center sm:justify-between [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0">
                   <p className="truncate text-base font-semibold text-white">
                     {group.partyTitle}
@@ -346,7 +346,7 @@ function QueuePanel({
                     {group.partyStartAt ? formatConsoleDateTime(group.partyStartAt) : "-"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <span className="rounded-full border border-[#22303d] bg-[#0b141d] px-2.5 py-1 text-[10px] text-[#9db0bf]">
                     {group.rows.length}명
                   </span>
@@ -370,9 +370,9 @@ function QueuePanel({
                     key={row.id}
                     className="rounded-[18px] border border-[#17212b] bg-[#0b141d] px-4 py-3"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <GenderBadge gender={row.applicant_gender} />
                           <p className="truncate text-sm font-semibold text-white">
                             {row.reserver_name}
@@ -383,7 +383,7 @@ function QueuePanel({
                         </div>
                         <p className="mt-1 text-sm text-[#8ea1b2]">{row.reserver_phone}</p>
                       </div>
-                      <p className="text-xs text-[#7f94a7]">
+                      <p className="text-xs text-[#7f94a7] sm:text-right">
                         {formatConsoleDateTime(row.submitted_at)}
                       </p>
                     </div>

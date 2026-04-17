@@ -50,13 +50,9 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const allAgreed = partyTermsAgreed && privacyAgreed;
   const isBirthDateValid = /^\d{8}$/.test(birthDate);
-  const totalApplied = party.maleApplied + party.femaleApplied;
   const isWaitlistExpected =
-    (gender === "male" &&
-      (totalApplied >= party.capacity || party.maleApplied >= party.maleCapacity)) ||
-    (gender === "female" &&
-      (totalApplied >= party.capacity || party.femaleApplied >= party.femaleCapacity)) ||
-    (gender === null && party.waitlistOnly);
+    (gender === "male" && party.maleApplied >= party.maleCapacity) ||
+    (gender === "female" && party.femaleApplied >= party.femaleCapacity);
   const hasRequiredFields =
     gender !== null &&
     isBirthDateValid &&
@@ -190,7 +186,7 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                 </div>
                 {isWaitlistExpected ? (
                   <p className="mt-3 text-sm text-brand-red">
-                    현재 이 신청은 대기 접수로 들어갑니다.
+                    현재 선택한 성별 정원이 차 있어 대기 접수로 들어갑니다.
                   </p>
                 ) : null}
               </fieldset>
@@ -327,6 +323,10 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
               {state.errorMessage}
             </div>
           ) : null}
+
+          <p className="mt-4 px-1 text-xs leading-5 text-muted">
+            제출 시점에 같은 성별 신청이 먼저 마감되면 대기자로 접수될 수 있습니다.
+          </p>
 
           <div className="mt-5">
             <SubmitButton
