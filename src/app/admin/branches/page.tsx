@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminConsoleLayout } from "@/components/layout/AdminConsoleLayout";
 import { requireAdminContext } from "@/features/admin-auth/server/admin-context";
-import { getBranchStatusTone } from "@/features/branch-admin/server/workspace";
+import {
+  getBranchStatusLabel,
+  getBranchStatusTone,
+} from "@/features/branch-admin/server/workspace";
 import { listBranchesForAdmin } from "@/features/branches/server/branches";
 
 export default async function AdminBranchesPage() {
@@ -47,7 +50,9 @@ export default async function AdminBranchesPage() {
                   <p className="mt-1 text-sm text-[#8ea1b2]">{branch.address ?? "-"}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <StatusPill tone={getBranchStatusTone(branch.status)}>{branch.status}</StatusPill>
+                  <StatusPill tone={getBranchStatusTone(branch.status)}>
+                    {getBranchStatusLabel(branch.status)}
+                  </StatusPill>
                   <span className="text-sm text-[#a8bac8]">관리자 {branch.assignedAdminCount}</span>
                   <span className="text-sm text-[#a8bac8]">{branch.phone ?? "-"}</span>
                 </div>

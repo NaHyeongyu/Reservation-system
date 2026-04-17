@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
+import type { PublicPartyOption } from "@/features/reservations/shared";
+import {
+  formatPublicDateLabel,
+  formatPublicTimeLabel,
+} from "@/features/reservations/shared";
+import { createPublicReservationAction } from "@/app/(public)/reservations/apply/_actions/create-public-reservation";
 import { ReservationFlowIndicator } from "./ReservationFlowIndicator";
 import { ReservationConsentSection } from "./ReservationConsentSection";
 import {
@@ -10,30 +16,9 @@ import {
   reservationPrimaryButtonClassName,
   reservationPrimaryButtonStyle,
 } from "./reservation-button-styles";
-import { getPublicBranchBySlug } from "../public-branches";
-
-function formatSelectedDate(value: string | null) {
-  if (!value) {
-    return "선택한 날짜 정보가 없습니다.";
-  }
-
-  const parsedDate = new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "선택한 날짜 정보가 없습니다.";
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  }).format(parsedDate);
-}
 
 type ReservationApplyFormProps = {
-  selectedDate: string | null;
-  selectedBranchSlug: string | null;
+  party: PublicPartyOption;
 };
 
 const referralSources = [
@@ -45,11 +30,15 @@ const referralSources = [
   "기타",
 ];
 
-export function ReservationApplyForm({
-  selectedDate,
-  selectedBranchSlug,
-}: ReservationApplyFormProps) {
-  const router = useRouter();
+const initialState = {
+  errorMessage: null,
+};
+
+export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
+  const [state, formAction] = useActionState(
+    createPublicReservationAction,
+    initialState,
+  );
   const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [birthDate, setBirthDate] = useState("");
   const [name, setName] = useState("");
@@ -59,9 +48,15 @@ export function ReservationApplyForm({
   const [referralSourceValues, setReferralSourceValues] = useState<string[]>([]);
   const [partyTermsAgreed, setPartyTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
-  const selectedBranch = getPublicBranchBySlug(selectedBranchSlug);
   const allAgreed = partyTermsAgreed && privacyAgreed;
   const isBirthDateValid = /^\d{8}$/.test(birthDate);
+  const totalApplied = party.maleApplied + party.femaleApplied;
+  const isWaitlistExpected =
+    (gender === "male" &&
+      (totalApplied >= party.capacity || party.maleApplied >= party.maleCapacity)) ||
+    (gender === "female" &&
+      (totalApplied >= party.capacity || party.femaleApplied >= party.femaleCapacity)) ||
+    (gender === null && party.waitlistOnly);
   const hasRequiredFields =
     gender !== null &&
     isBirthDateValid &&
@@ -86,23 +81,6 @@ export function ReservationApplyForm({
     });
   }
 
-  function handleSubmit() {
-    if (!canSubmit) {
-      return;
-    }
-    const params = new URLSearchParams();
-
-    if (selectedDate) {
-      params.set("date", selectedDate);
-    }
-
-    if (selectedBranchSlug) {
-      params.set("branch", selectedBranchSlug);
-    }
-
-    router.push(`/reservations/complete?${params.toString()}`);
-  }
-
   return (
     <main className="flex min-h-screen flex-1">
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
@@ -122,13 +100,21 @@ export function ReservationApplyForm({
             <div>
               <p className="text-muted">선택 날짜</p>
               <p className="mt-1 text-brand-white">
-                {formatSelectedDate(selectedDate)}
+                {formatPublicDateLabel(party.startAt)}
               </p>
             </div>
             <div>
               <p className="text-muted">선택 지점</p>
+              <p className="mt-1 text-brand-white">{party.branchName}</p>
+            </div>
+            <div>
+              <p className="text-muted">파티</p>
+              <p className="mt-1 text-brand-white">{party.title}</p>
+            </div>
+            <div>
+              <p className="text-muted">파티시간</p>
               <p className="mt-1 text-brand-white">
-                {selectedBranch ? selectedBranch.name : "선택한 지점 정보가 없습니다."}
+                {formatPublicTimeLabel(party.startAt, party.endAt)}
               </p>
             </div>
           </div>
@@ -142,189 +128,240 @@ export function ReservationApplyForm({
           </div>
         </section>
 
-        <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
-          <div className="space-y-4">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-                개인 정보 입력
-              </p>
-            </div>
+        <form action={formAction} className="contents">
+          <input type="hidden" name="partyId" value={party.id} />
+          <input
+            type="hidden"
+            name="partyTermsAgreed"
+            value={partyTermsAgreed ? "true" : "false"}
+          />
+          <input
+            type="hidden"
+            name="privacyAgreed"
+            value={privacyAgreed ? "true" : "false"}
+          />
 
-            <fieldset className="block">
-              <legend className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                <span>성별</span>
-                <span className="text-brand-red">*</span>
-              </legend>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                <label
-                  className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
-                    gender === "male"
-                      ? "border-brand-orange"
-                      : "border-line"
-                  }`}
-                >
+          <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+                  개인 정보 입력
+                </p>
+              </div>
+
+              <fieldset className="block">
+                <legend className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span>성별</span>
+                  <span className="text-brand-red">*</span>
+                </legend>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
+                      gender === "male" ? "border-brand-orange" : "border-line"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="male"
+                      required
+                      checked={gender === "male"}
+                      onChange={() => setGender("male")}
+                      className="h-4 w-4 accent-brand-orange"
+                    />
+                    <span>남</span>
+                  </label>
+                  <label
+                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
+                      gender === "female" ? "border-brand-orange" : "border-line"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="female"
+                      required
+                      checked={gender === "female"}
+                      onChange={() => setGender("female")}
+                      className="h-4 w-4 accent-brand-orange"
+                    />
+                    <span>여</span>
+                  </label>
+                </div>
+                {isWaitlistExpected ? (
+                  <p className="mt-3 text-sm text-brand-red">
+                    현재 이 신청은 대기 접수로 들어갑니다.
+                  </p>
+                ) : null}
+              </fieldset>
+
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span>생년월일</span>
+                  <span className="text-brand-red">*</span>
+                </span>
+                <input
+                  id="birthDate"
+                  name="birthDate"
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  maxLength={8}
+                  minLength={8}
+                  pattern="[0-9]{8}"
+                  placeholder="20010809"
+                  value={birthDate}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                />
+              </label>
+
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span>이름</span>
+                  <span className="text-brand-red">*</span>
+                </span>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="이름을 입력하세요"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                />
+              </label>
+
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span>전화번호</span>
+                  <span className="text-brand-red">*</span>
+                </span>
+                <input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  required
+                  placeholder="010-0000-0000"
+                  value={phoneNumber}
+                  onChange={(event) => setPhoneNumber(event.target.value)}
+                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
+                <label className="block">
+                  <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                    <span>은행</span>
+                    <span className="text-brand-red">*</span>
+                  </span>
                   <input
-                    type="radio"
-                    name="gender"
-                    value="male"
+                    id="bankName"
+                    name="bankName"
+                    type="text"
                     required
-                    checked={gender === "male"}
-                    onChange={() => setGender("male")}
-                    className="h-4 w-4 accent-brand-orange"
+                    placeholder="은행명을 입력하세요"
+                    value={bankName}
+                    onChange={(event) => setBankName(event.target.value)}
+                    className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
                   />
-                  <span>남</span>
                 </label>
-                <label
-                  className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
-                    gender === "female"
-                      ? "border-brand-orange"
-                      : "border-line"
-                  }`}
-                >
+
+                <label className="block">
+                  <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                    <span>계좌번호</span>
+                    <span className="text-brand-red">*</span>
+                  </span>
                   <input
-                    type="radio"
-                    name="gender"
-                    value="female"
+                    id="accountNumber"
+                    name="accountNumber"
+                    type="text"
                     required
-                    checked={gender === "female"}
-                    onChange={() => setGender("female")}
-                    className="h-4 w-4 accent-brand-orange"
+                    placeholder="계좌번호를 입력하세요"
+                    value={accountNumber}
+                    onChange={(event) => setAccountNumber(event.target.value)}
+                    className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
                   />
-                  <span>여</span>
                 </label>
               </div>
-            </fieldset>
 
-            <label className="block">
-              <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                <span>생년월일</span>
-                <span className="text-brand-red">*</span>
-              </span>
-              <input
-                type="text"
-                required
-                inputMode="numeric"
-                maxLength={8}
-                minLength={8}
-                pattern="[0-9]{8}"
-                placeholder="20010809"
-                value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
-                className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
-              />
-            </label>
+              <div className="pt-2">
+                <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+                  유입경로
+                </p>
+              </div>
 
-            <label className="block">
-              <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                <span>이름</span>
-                <span className="text-brand-red">*</span>
-              </span>
-              <input
-                type="text"
-                required
-                placeholder="이름을 입력하세요"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
-              />
-            </label>
-
-            <label className="block">
-              <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                <span>전화번호</span>
-                <span className="text-brand-red">*</span>
-              </span>
-              <input
-                type="tel"
-                required
-                placeholder="010-0000-0000"
-                value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
-              <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                  <span>은행</span>
-                  <span className="text-brand-red">*</span>
-                </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="은행명을 입력하세요"
-                  value={bankName}
-                  onChange={(event) => setBankName(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
-                />
-              </label>
-
-              <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                  <span>계좌번호</span>
-                  <span className="text-brand-red">*</span>
-                </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="계좌번호를 입력하세요"
-                  value={accountNumber}
-                  onChange={(event) => setAccountNumber(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
-                />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                {referralSources.map((source) => (
+                  <label key={source} className="block">
+                    <input
+                      type="checkbox"
+                      name="referralSources"
+                      value={source}
+                      checked={referralSourceValues.includes(source)}
+                      onChange={(event) =>
+                        handleToggleReferralSource(source, event.target.checked)
+                      }
+                      className="peer sr-only"
+                    />
+                    <span className="inline-flex h-9 items-center rounded-full border border-line px-4 text-sm text-muted transition peer-checked:border-brand-orange peer-checked:text-brand-white">
+                      {source}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
+          </section>
 
-            <div className="pt-2">
-              <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-                유입경로
-              </p>
-            </div>
+          <ReservationConsentSection
+            partyTermsAgreed={partyTermsAgreed}
+            privacyAgreed={privacyAgreed}
+            onChangePartyTerms={setPartyTermsAgreed}
+            onChangePrivacy={setPrivacyAgreed}
+            onToggleAll={handleToggleAllConsents}
+          />
 
-            <div className="flex flex-wrap gap-2">
-              {referralSources.map((source) => (
-                <label key={source} className="block">
-                  <input
-                    type="checkbox"
-                    name="referralSources"
-                    value={source}
-                    checked={referralSourceValues.includes(source)}
-                    onChange={(event) =>
-                      handleToggleReferralSource(source, event.target.checked)
-                    }
-                    className="peer sr-only"
-                  />
-                  <span className="inline-flex h-9 items-center rounded-full border border-line px-4 text-sm text-muted transition peer-checked:border-brand-orange peer-checked:text-brand-white">
-                    {source}
-                  </span>
-                </label>
-              ))}
+          {state.errorMessage ? (
+            <div className="mt-5 rounded-[22px] border border-[#5a2430] bg-[#1a0d12] px-4 py-3 text-sm text-[#ffd7de]">
+              {state.errorMessage}
             </div>
+          ) : null}
+
+          <div className="mt-5">
+            <SubmitButton
+              disabled={!canSubmit}
+              label={isWaitlistExpected ? "대기자 신청" : "신청서 제출하기"}
+            />
           </div>
-
-        </section>
-
-        <ReservationConsentSection
-          partyTermsAgreed={partyTermsAgreed}
-          privacyAgreed={privacyAgreed}
-          onChangePartyTerms={setPartyTermsAgreed}
-          onChangePrivacy={setPrivacyAgreed}
-          onToggleAll={handleToggleAllConsents}
-        />
-
-        <div className="mt-5">
-          <button
-            type="button"
-            disabled={!canSubmit}
-            onClick={handleSubmit}
-            style={reservationPrimaryButtonStyle}
-            className={canSubmit ? reservationPrimaryButtonClassName : reservationDisabledButtonClassName}
-          >
-            신청서 제출하기
-          </button>
-        </div>
+        </form>
       </section>
     </main>
+  );
+}
+
+function SubmitButton({
+  disabled,
+  label,
+}: {
+  disabled: boolean;
+  label: string;
+}) {
+  const { pending } = useFormStatus();
+  const isDisabled = disabled || pending;
+
+  return (
+    <button
+      type="submit"
+      disabled={isDisabled}
+      style={reservationPrimaryButtonStyle}
+      className={
+        isDisabled
+          ? reservationDisabledButtonClassName
+          : reservationPrimaryButtonClassName
+      }
+    >
+      {pending ? "처리 중..." : label}
+    </button>
   );
 }

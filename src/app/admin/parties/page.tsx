@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { AdminFlashNotice } from "@/components/layout/AdminFlashNotice";
 import { AdminConsoleLayout } from "@/components/layout/AdminConsoleLayout";
 import { requireAdminContext } from "@/features/admin-auth/server/admin-context";
-import { formatConsoleDate, formatConsoleTime, getBranchWorkspace, getPartyStatusTone, listBranchParties } from "@/features/branch-admin/server/workspace";
+import {
+  formatConsoleDate,
+  formatConsoleTime,
+  getBranchWorkspace,
+  getPartyStatusLabel,
+  getPartyStatusTone,
+  listBranchParties,
+} from "@/features/branch-admin/server/workspace";
 
 type AdminPartiesPageProps = {
-  searchParams?: Promise<{ created?: string }>;
+  searchParams?: Promise<{ created?: string; deleted?: string }>;
 };
 
 export default async function AdminPartiesPage({ searchParams }: AdminPartiesPageProps) {
@@ -24,7 +32,21 @@ export default async function AdminPartiesPage({ searchParams }: AdminPartiesPag
       description={branch.name}
       loginId={admin.loginId}
       role={admin.role}
-      notice={params?.created === "1" ? <section className="rounded-[24px] border border-[#2b5878] bg-[#0d1c27] px-5 py-4 text-sm leading-7 text-[#d9f1ff]">파티 생성이 완료되었습니다.</section> : null}
+      notice={
+        params?.created === "1" ? (
+          <AdminFlashNotice
+            tone="info"
+            message="파티 생성이 완료되었습니다."
+            clearKeys={["created", "date"]}
+          />
+        ) : params?.deleted === "1" ? (
+          <AdminFlashNotice
+            tone="info"
+            message="파티를 삭제했습니다."
+            clearKeys={["deleted"]}
+          />
+        ) : null
+      }
       actions={<Link href="/admin/calendar" className="inline-flex w-full items-center justify-center rounded-[16px] border border-[#2f5c82] bg-[#0f2231] px-4 py-3 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">파티 생성</Link>}
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -57,8 +79,12 @@ export default async function AdminPartiesPage({ searchParams }: AdminPartiesPag
               <tbody>
                 {parties.map((party) => (
                   <tr key={party.id} className="border-b border-[#131c25] last:border-b-0">
-                    <td className="px-6 py-4 font-semibold text-white"><Link href={`/admin/parties/${party.id}`} className="transition hover:text-[#9fdcff]">{party.title}</Link></td>
-                    <td className="px-4 py-4"><StatusPill tone={getPartyStatusTone(party.status)}>{party.status}</StatusPill></td>
+                    <td className="px-6 py-4 font-semibold text-white"><Link href={`/admin/parties/${party.id}?from=parties`} className="transition hover:text-[#9fdcff]">{party.title}</Link></td>
+                    <td className="px-4 py-4">
+                      <StatusPill tone={getPartyStatusTone(party.status)}>
+                        {getPartyStatusLabel(party.status)}
+                      </StatusPill>
+                    </td>
                     <td className="px-4 py-4 text-[#a8bac8]">{formatConsoleDate(party.start_at)}</td>
                     <td className="px-4 py-4 text-[#a8bac8]">{formatConsoleTime(party.start_at)}</td>
                     <td className="px-4 py-4 text-[#a8bac8]">남 {party.male_capacity} / 여 {party.female_capacity}</td>

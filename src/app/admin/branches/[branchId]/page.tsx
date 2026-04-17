@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { AdminFlashNotice } from "@/components/layout/AdminFlashNotice";
 import { AdminConsoleLayout } from "@/components/layout/AdminConsoleLayout";
 import { requireAdminContext } from "@/features/admin-auth/server/admin-context";
-import { getBranchStatusTone } from "@/features/branch-admin/server/workspace";
+import {
+  getBranchStatusLabel,
+  getBranchStatusTone,
+} from "@/features/branch-admin/server/workspace";
 import { getBranchDetailForAdmin, listBranchAdminAssignments } from "@/features/branches/server/branches";
 import { BranchAdminCreateForm } from "./_components/BranchAdminCreateForm";
 
@@ -36,10 +40,28 @@ export default async function AdminBranchDetailPage({ params, searchParams }: Ad
       loginId={admin.loginId}
       role={admin.role}
       actions={<Link href="/admin/branches" className="inline-flex items-center justify-center rounded-[16px] border border-[#2b3947] bg-[#0b1218] px-4 py-3 text-sm font-semibold text-[#dfe8ef] transition hover:border-[#7ad0ff] hover:text-white">목록으로</Link>}
-      notice={query?.created === "1" ? <InlineNotice>지점 생성이 완료되었습니다.</InlineNotice> : query?.adminCreated === "1" ? <InlineNotice>지점 관리자 계정 생성이 완료되었습니다.</InlineNotice> : null}
+      notice={
+        query?.created === "1" ? (
+          <AdminFlashNotice
+            tone="info"
+            message="지점 생성이 완료되었습니다."
+            clearKeys={["created"]}
+          />
+        ) : query?.adminCreated === "1" ? (
+          <AdminFlashNotice
+            tone="info"
+            message="지점 관리자 계정 생성이 완료되었습니다."
+            clearKeys={["adminCreated"]}
+          />
+        ) : null
+      }
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="상태" value={branch.status} tone={getBranchStatusTone(branch.status)} />
+        <MetricCard
+          label="상태"
+          value={getBranchStatusLabel(branch.status)}
+          tone={getBranchStatusTone(branch.status)}
+        />
         <MetricCard label="관리자" value={String(branchAdmins.length)} />
         <MetricCard label="전화번호" value={branch.phone ?? "-"} />
         <MetricCard label="업데이트" value={formatDate(branch.updated_at)} />
@@ -73,9 +95,11 @@ export default async function AdminBranchDetailPage({ params, searchParams }: Ad
               <div key={assignment.adminUserId} className="flex items-center justify-between rounded-[22px] border border-[#18222d] bg-[#0f1822] px-4 py-4">
                 <div>
                   <p className="text-base font-semibold text-white">{assignment.loginId}</p>
-                  <p className="mt-1 text-sm text-[#8ea1b2]">{assignment.role}</p>
+                  <p className="mt-1 text-sm text-[#8ea1b2]">{formatAdminRole(assignment.role)}</p>
                 </div>
-                <span className="rounded-full border border-[#285c43] bg-[#0f2018] px-3 py-1 font-mono text-[11px] tracking-[0.16em] uppercase text-[#8ee2b4]">{assignment.status}</span>
+                <span className="rounded-full border border-[#285c43] bg-[#0f2018] px-3 py-1 font-mono text-[11px] tracking-[0.16em] uppercase text-[#8ee2b4]">
+                  {formatAdminUserStatus(assignment.status)}
+                </span>
               </div>
             ))
           )}
@@ -83,10 +107,6 @@ export default async function AdminBranchDetailPage({ params, searchParams }: Ad
       </section>
     </AdminConsoleLayout>
   );
-}
-
-function InlineNotice({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-[24px] border border-[#2b5878] bg-[#0d1c27] px-5 py-4 text-sm leading-7 text-[#d9f1ff]">{children}</section>;
 }
 
 function MetricCard({ label, value, tone }: { label: string; value: string; tone?: string }) {
@@ -104,4 +124,20 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+}
+
+function formatAdminRole(value: string) {
+  return value === "super_admin"
+    ? "메인 관리자"
+    : value === "branch_admin"
+      ? "지점 관리자"
+      : value;
+}
+
+function formatAdminUserStatus(value: string) {
+  return value === "active"
+    ? "활성"
+    : value === "inactive"
+      ? "비활성"
+      : value;
 }

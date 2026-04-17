@@ -18,6 +18,8 @@ export async function createPartyAction(_previousState: CreatePartyActionState, 
   const endTime = getFormValue(formData, "endTime");
   const maleCapacity = Number.parseInt(getFormValue(formData, "maleCapacity"), 10);
   const femaleCapacity = Number.parseInt(getFormValue(formData, "femaleCapacity"), 10);
+  const isVisible = getFormValue(formData, "isVisible") === "true";
+  const showHeadcount = getFormValue(formData, "showHeadcount") === "true";
 
   if (!title) {
     return { errorMessage: "파티명을 입력하세요." };
@@ -50,7 +52,16 @@ export async function createPartyAction(_previousState: CreatePartyActionState, 
     return { errorMessage: "종료 시간은 시작 시간보다 뒤여야 합니다." };
   }
 
-  const result = await createBranchParty({ branchId: branch.id, title, startAt, endAt, maleCapacity, femaleCapacity });
+  const result = await createBranchParty({
+    branchId: branch.id,
+    title,
+    startAt,
+    endAt,
+    maleCapacity,
+    femaleCapacity,
+    isVisible,
+    showHeadcount,
+  });
 
   if (!result.ok) {
     return { errorMessage: result.message };

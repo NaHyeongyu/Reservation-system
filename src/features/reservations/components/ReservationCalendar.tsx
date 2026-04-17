@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
-import {
-  isWaitlistOnlyBranch,
-  listAvailableBranches,
-} from "../public-branches";
+import type { PublicPartyOption } from "@/features/reservations/shared";
+import { getPublicDateKey } from "@/features/reservations/shared";
 import { useCalendarMonth } from "../hooks/useCalendarMonth";
 import {
   reservationDisabledButtonClassName,
@@ -18,37 +16,46 @@ import {
 import { ReservationBranchPicker } from "./ReservationBranchPicker";
 import { ReservationFlowIndicator } from "./ReservationFlowIndicator";
 
-export function ReservationCalendar() {
+type ReservationCalendarProps = {
+  partyOptions: PublicPartyOption[];
+};
+
+export function ReservationCalendar({ partyOptions }: ReservationCalendarProps) {
   const {
     currentMonth,
     selectedDate,
     selectedLabel,
-    selectedDateParam,
     disabledDays,
     handleMonthChange,
     handleSelectDate,
   } = useCalendarMonth();
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
 
-  const availableBranches = useMemo(
-    () => listAvailableBranches(selectedDate),
-    [selectedDate],
+  const availableDateKeys = useMemo(
+    () => new Set(partyOptions.map((party) => getPublicDateKey(party.startAt))),
+    [partyOptions],
   );
 
-  const selectedBranch =
-    availableBranches.find((branch) => branch.id === selectedBranchId) ?? null;
-  const isWaitlistOnly = selectedBranch
-    ? isWaitlistOnlyBranch(selectedBranch)
-    : false;
+  const availableParties = useMemo(() => {
+    if (!selectedDate) {
+      return [];
+    }
+
+    const selectedDateKey = formatCalendarDateKey(selectedDate);
+    return partyOptions.filter((party) => getPublicDateKey(party.startAt) === selectedDateKey);
+  }, [partyOptions, selectedDate]);
+
+  const selectedParty =
+    availableParties.find((party) => party.id === selectedPartyId) ?? null;
 
   function handlePublicMonthChange(nextMonth: Date) {
     handleMonthChange(nextMonth);
-    setSelectedBranchId(null);
+    setSelectedPartyId(null);
   }
 
   function handlePublicDateSelect(nextDate: Date | undefined) {
     handleSelectDate(nextDate);
-    setSelectedBranchId(null);
+    setSelectedPartyId(null);
   }
 
   return (
@@ -61,13 +68,13 @@ export function ReservationCalendar() {
               label: "지점",
               status: !selectedDate
                 ? "upcoming"
-                : selectedBranch
+                : selectedParty
                   ? "complete"
                   : "current",
             },
             {
               label: "신청서",
-              status: selectedBranch ? "current" : "upcoming",
+              status: selectedParty ? "current" : "upcoming",
             },
           ]}
         />
@@ -103,7 +110,10 @@ export function ReservationCalendar() {
             onMonthChange={handlePublicMonthChange}
             selected={selectedDate ?? undefined}
             onSelect={handlePublicDateSelect}
-            disabled={disabledDays}
+            disabled={[
+              ...disabledDays,
+              (date) => !availableDateKeys.has(formatCalendarDateKey(date)),
+            ]}
             modifiers={{
               sunday: { dayOfWeek: [0] },
               saturday: { dayOfWeek: [6] },
@@ -159,10 +169,10 @@ export function ReservationCalendar() {
         <footer className="mt-5 flex flex-col gap-3">
           {selectedDate && selectedLabel ? (
             <ReservationBranchPicker
-              branches={availableBranches}
-              selectedBranchId={selectedBranchId}
+              parties={availableParties}
+              selectedPartyId={selectedPartyId}
               selectedDateLabel={selectedLabel}
-              onSelect={setSelectedBranchId}
+              onSelect={setSelectedPartyId}
             />
           ) : (
             <section className="mt-5 rounded-[22px] border border-line bg-surface px-4 py-4">
@@ -175,13 +185,13 @@ export function ReservationCalendar() {
             </section>
           )}
 
-          {selectedBranch && selectedDateParam ? (
+          {selectedParty ? (
             <Link
-              href={`/reservations/apply?date=${selectedDateParam}&branch=${selectedBranch.slug}`}
+              href={`/reservations/apply?party=${selectedParty.id}`}
               style={reservationPrimaryButtonStyle}
               className={`mt-1 ${reservationPrimaryButtonClassName}`}
             >
-              {isWaitlistOnly ? "대기자 신청" : "신청서 작성하기"}
+              {selectedParty.waitlistOnly ? "대기자 신청" : "신청서 작성하기"}
             </Link>
           ) : (
             <button
@@ -197,4 +207,12 @@ export function ReservationCalendar() {
       </section>
     </main>
   );
+}
+
+function formatCalendarDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

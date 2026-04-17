@@ -3,50 +3,33 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import type { PublicReservationCompleteData } from "@/features/reservations/shared";
+import {
+  formatPublicDateLabel,
+  formatPublicTimeLabel,
+} from "@/features/reservations/shared";
 import {
   reservationPrimaryButtonClassName,
   reservationPrimaryButtonStyle,
 } from "./reservation-button-styles";
-import { getPublicBranchBySlug } from "../public-branches";
-
-function formatSelectedDate(value: string | null) {
-  if (!value) {
-    return "선택한 날짜 정보가 없습니다.";
-  }
-
-  const parsedDate = new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "선택한 날짜 정보가 없습니다.";
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  }).format(parsedDate);
-}
 
 type ReservationCompleteViewProps = {
-  selectedDate: string | null;
-  selectedBranchSlug: string | null;
+  reservation: PublicReservationCompleteData;
 };
 
 export function ReservationCompleteView({
-  selectedDate,
-  selectedBranchSlug,
+  reservation,
 }: ReservationCompleteViewProps) {
   const [isAddressCopied, setIsAddressCopied] = useState(false);
-  const selectedBranch = getPublicBranchBySlug(selectedBranchSlug);
+  const isWaitlisted = reservation.reservationStatus === "waitlisted";
 
   async function handleCopyAddress() {
-    if (!selectedBranch) {
+    if (!reservation.branchAddress) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(selectedBranch.address);
+      await navigator.clipboard.writeText(reservation.branchAddress);
       setIsAddressCopied(true);
       window.setTimeout(() => setIsAddressCopied(false), 2000);
     } catch {
@@ -88,10 +71,10 @@ export function ReservationCompleteView({
 
         <div className="mt-6">
           <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-            신청 완료
+            {isWaitlisted ? "대기 접수" : "신청 완료"}
           </p>
           <h1 className="mt-3 text-[28px] font-black tracking-[0.01em] text-brand-white">
-            신청서가 제출되었습니다
+            {isWaitlisted ? "대기 신청이 접수되었습니다" : "신청서가 제출되었습니다"}
           </h1>
         </div>
 
@@ -100,21 +83,26 @@ export function ReservationCompleteView({
             예약 정보
           </p>
           <div className="mt-3 space-y-3 text-sm text-brand-white">
-            <div className="flex items-start justify-between gap-4">
-              <span className="text-muted">선택 날짜</span>
-              <span className="text-right">{formatSelectedDate(selectedDate)}</span>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <span className="text-muted">매장</span>
-              <span className="text-right">
-                {selectedBranch ? selectedBranch.name : "선택한 지점 정보가 없습니다."}
-              </span>
-            </div>
+            <DetailRow label="예약코드" value={reservation.reservationCode} />
+            <DetailRow label="이름" value={reservation.reserverName} />
+            <DetailRow
+              label="선택 날짜"
+              value={formatPublicDateLabel(reservation.partyStartAt)}
+            />
+            <DetailRow label="파티" value={reservation.partyTitle} />
+            <DetailRow
+              label="파티시간"
+              value={formatPublicTimeLabel(
+                reservation.partyStartAt,
+                reservation.partyEndAt,
+              )}
+            />
+            <DetailRow label="매장" value={reservation.branchName} />
             <div className="flex items-start justify-between gap-4">
               <span className="text-muted">주소</span>
-              {selectedBranch ? (
+              {reservation.branchAddress ? (
                 <div className="flex items-center gap-2 text-right">
-                  <span>{selectedBranch.address}</span>
+                  <span>{reservation.branchAddress}</span>
                   <button
                     type="button"
                     onClick={handleCopyAddress}
@@ -168,7 +156,7 @@ export function ReservationCompleteView({
                   </button>
                 </div>
               ) : (
-                <span className="text-right">선택한 지점 정보가 없습니다.</span>
+                <span className="text-right">-</span>
               )}
             </div>
           </div>
@@ -185,5 +173,14 @@ export function ReservationCompleteView({
         </div>
       </section>
     </main>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-muted">{label}</span>
+      <span className="text-right">{value}</span>
+    </div>
   );
 }

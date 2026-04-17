@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { AdminFlashNotice } from "@/components/layout/AdminFlashNotice";
 import { AdminConsoleLayout } from "@/components/layout/AdminConsoleLayout";
 import { requireAdminContext } from "@/features/admin-auth/server/admin-context";
 import {
+  getApplicantStatusLabel,
   formatConsoleDateTime,
   getApplicantStatusTone,
+  getBranchStatusLabel,
   getBranchDashboardSnapshot,
   getBranchStatusTone,
+  getPartyStatusLabel,
   getPartyStatusTone,
   getBranchWorkspace,
 } from "@/features/branch-admin/server/workspace";
@@ -34,7 +38,13 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
         loginId={admin.loginId}
         role={admin.role}
         notice={
-          params?.denied === "1" ? <InlineNotice tone="danger">접근 권한이 없습니다.</InlineNotice> : null
+          params?.denied === "1" ? (
+            <AdminFlashNotice
+              tone="danger"
+              message="접근 권한이 없습니다."
+              clearKeys={["denied"]}
+            />
+          ) : null
         }
       >
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -73,7 +83,9 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                       <p className="text-base font-semibold text-white">{party.title}</p>
                       <p className="mt-2 text-sm text-[#8ea1b2]">남 {party.male_capacity} / 여 {party.female_capacity}</p>
                     </div>
-                    <StatusPill tone={getPartyStatusTone(party.status)}>{party.status}</StatusPill>
+                    <StatusPill tone={getPartyStatusTone(party.status)}>
+                      {getPartyStatusLabel(party.status)}
+                    </StatusPill>
                   </div>
                 ))
               )}
@@ -86,7 +98,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
               <div className="mt-5 space-y-4">
                 <InfoRow label="전화번호" value={branch.phone ?? "-"} />
                 <InfoRow label="주소" value={branch.address ?? "-"} />
-                <InfoRow label="상태" value={branch.status} />
+                <InfoRow label="상태" value={getBranchStatusLabel(branch.status)} />
                 <InfoRow label="인스타그램" value={branch.instagram_url ?? "-"} />
               </div>
             </article>
@@ -97,9 +109,6 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                   <p className="font-mono text-[11px] tracking-[0.28em] text-[#7fc3ff] uppercase">Applicants</p>
                   <h3 className="mt-2 text-xl font-semibold text-white">최근 신청</h3>
                 </div>
-                <Link href="/admin/applicants" className="text-sm font-semibold text-[#9fdcff] transition hover:text-white">
-                  전체 보기
-                </Link>
               </div>
 
               <div className="space-y-3 p-4">
@@ -113,7 +122,9 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                           <p className="text-base font-semibold text-white">{applicant.reserver_name}</p>
                           <p className="mt-1 text-sm text-[#8ea1b2]">{applicant.party_title ?? "미지정 파티"}</p>
                         </div>
-                        <StatusPill tone={getApplicantStatusTone(applicant.status)}>{applicant.status}</StatusPill>
+                        <StatusPill tone={getApplicantStatusTone(applicant.status)}>
+                          {getApplicantStatusLabel(applicant.status)}
+                        </StatusPill>
                       </div>
                     </div>
                   ))
@@ -141,9 +152,17 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
       role={admin.role}
       notice={
         params?.created === "1" ? (
-          <InlineNotice tone="info">초기 관리자 계정 생성이 완료되었습니다.</InlineNotice>
+          <AdminFlashNotice
+            tone="info"
+            message="초기 관리자 계정 생성이 완료되었습니다."
+            clearKeys={["created"]}
+          />
         ) : params?.denied === "1" ? (
-          <InlineNotice tone="danger">접근 권한이 없습니다.</InlineNotice>
+          <AdminFlashNotice
+            tone="danger"
+            message="접근 권한이 없습니다."
+            clearKeys={["denied"]}
+          />
         ) : null
       }
       actions={
@@ -193,7 +212,9 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                     </Link>
                   </td>
                   <td className="px-4 py-4">
-                    <StatusPill tone={getBranchStatusTone(branch.status)}>{branch.status}</StatusPill>
+                    <StatusPill tone={getBranchStatusTone(branch.status)}>
+                      {getBranchStatusLabel(branch.status)}
+                    </StatusPill>
                   </td>
                   <td className="px-4 py-4 text-[#a8bac8]">{branch.assignedAdminCount}</td>
                   <td className="px-4 py-4 text-[#a8bac8]">{branch.phone ?? "-"}</td>
@@ -205,14 +226,6 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
         </div>
       </section>
     </AdminConsoleLayout>
-  );
-}
-
-function InlineNotice({ children, tone = "info" }: { children: React.ReactNode; tone?: "info" | "danger" }) {
-  return (
-    <section className={tone === "danger" ? "rounded-[24px] border border-[#5a2430] bg-[#1a0d12] px-5 py-4 text-sm leading-7 text-[#ffd7de]" : "rounded-[24px] border border-[#2b5878] bg-[#0d1c27] px-5 py-4 text-sm leading-7 text-[#d9f1ff]"}>
-      {children}
-    </section>
   );
 }
 

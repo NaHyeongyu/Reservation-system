@@ -8,6 +8,7 @@ import type { BranchPartyItem } from "@/features/branch-admin/server/workspace";
 
 type BranchCalendarViewProps = {
   parties: BranchPartyItem[];
+  initialSelectedDate?: string;
 };
 
 type PartyGroup = {
@@ -16,18 +17,29 @@ type PartyGroup = {
   parties: BranchPartyItem[];
 };
 
-export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
+export function BranchCalendarView({ parties, initialSelectedDate }: BranchCalendarViewProps) {
   const groupedByDate = useMemo(() => buildPartyGroups(parties), [parties]);
   const partyDates = useMemo(() => groupedByDate.map((group) => group.date), [groupedByDate]);
   const partyMap = useMemo(() => new Map(groupedByDate.map((group) => [group.key, group.parties])), [groupedByDate]);
 
   const today = startOfDay(new Date());
-  const initialSelectedDate = groupedByDate[0]?.date ?? today;
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(initialSelectedDate));
-  const [selectedDate, setSelectedDate] = useState<Date>(initialSelectedDate);
+  const resolvedInitialDate = useMemo(() => {
+    if (initialSelectedDate && /^\d{4}-\d{2}-\d{2}$/.test(initialSelectedDate)) {
+      return parseDateKey(initialSelectedDate);
+    }
+
+    return groupedByDate[0]?.date ?? today;
+  }, [groupedByDate, initialSelectedDate, today]);
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(resolvedInitialDate));
+  const [selectedDate, setSelectedDate] = useState<Date>(resolvedInitialDate);
 
   const selectedKey = toDateKey(selectedDate);
   const selectedGroup = groupedByDate.find((group) => group.key === selectedKey) ?? null;
+  const selectedSummary = useMemo(
+    () => summarizePartyCounts(selectedGroup?.parties ?? []),
+    [selectedGroup],
+  );
+  const selectedPrimaryParty = selectedGroup?.parties[0] ?? null;
 
   const CalendarDay = (props: DayProps) => {
     const { day, modifiers, className, children, ...tdProps } = props;
@@ -38,7 +50,7 @@ export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
       ? cloneElement(children, {
           className: [
             children.props.className,
-            "inline-flex h-7 w-7 items-center justify-center rounded-[10px] border border-transparent text-[11px] font-semibold text-white transition hover:border-[#31424f] hover:bg-[#13202c] sm:h-9 sm:w-9 sm:text-sm",
+            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-transparent text-[11px] font-semibold text-white transition hover:border-[#31424f] hover:bg-[#13202c] sm:h-9 sm:w-9 sm:rounded-[10px] sm:text-sm",
           ]
             .filter(Boolean)
             .join(" "),
@@ -46,27 +58,50 @@ export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
       : children;
 
     return (
-      <td {...tdProps} className={[className, "w-[14.285%] align-top p-0.5 sm:p-1"].filter(Boolean).join(" ")}>
+      <td {...tdProps} className={[className, "w-[14.285%] align-top p-px sm:p-1"].filter(Boolean).join(" ")}>
         <div
           className={[
-            "h-[72px] w-full overflow-hidden rounded-[16px] border border-[#17212b] bg-[#0b141d] p-1.5 text-left sm:h-[96px] sm:rounded-[18px] sm:p-2.5 lg:h-[122px] xl:h-[132px]",
-            modifiers.selected ? "border-[#7ad0ff] bg-[#122130]" : "",
-            modifiers.today ? "border-[#31424f]" : "",
-            isMuted ? "bg-[#0a1118] opacity-55" : "",
+            "h-[68px] w-full overflow-hidden rounded-[12px] p-1 text-left sm:h-[102px] sm:rounded-[16px] sm:border sm:border-[#17212b] sm:bg-[#0b141d] sm:p-2 lg:h-[120px] xl:h-[132px]",
+            modifiers.selected ? "sm:border-[#7ad0ff] sm:bg-[#122130]" : "",
+            modifiers.today ? "sm:border-[#31424f]" : "",
+            isMuted ? "opacity-45 sm:bg-[#0a1118] sm:opacity-55" : "",
           ].filter(Boolean).join(" ")}
         >
-          <div className="flex items-start justify-between gap-2">{dayButton}</div>
+          <div className="flex items-start justify-center pt-0.5 sm:justify-between sm:pt-0">{dayButton}</div>
 
           {!modifiers.hidden && !modifiers.outside && cellParties.length > 0 ? (
-            <div className="mt-1.5 flex max-h-[calc(100%-2rem)] flex-col gap-1 overflow-hidden sm:mt-2 sm:max-h-[calc(100%-2.75rem)]">
-              {cellParties.slice(0, 2).map((party, index) => (
-                <BadgeLink key={party.id} href={`/admin/parties/${party.id}`} className={index === 1 ? "hidden sm:inline-flex" : ""}>
-                  {party.title}
-                </BadgeLink>
-              ))}
-              {cellParties.length > 1 ? <span className="px-1 text-[10px] font-medium text-[#7c95a8] sm:hidden">+{cellParties.length - 1}</span> : null}
-              {cellParties.length > 2 ? <span className="hidden px-1 text-[10px] font-medium text-[#7c95a8] sm:inline">+{cellParties.length - 2}</span> : null}
-            </div>
+            <>
+              <div className="mt-3 flex flex-col items-center gap-1 sm:hidden">
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#142130] px-1 text-[8px] font-semibold text-[#dff4ff]">
+                  {cellParties.length}
+                </span>
+                {cellParties[0] ? (
+                  <div className="flex flex-col items-center gap-0.5 text-[8px] font-medium text-[#8fb7d6]">
+                    <span>{formatTimeRange(cellParties[0].start_at, cellParties[0].end_at)}</span>
+                    <span>신 {getPendingCount(cellParties[0])} · 대 {getWaitlistCount(cellParties[0])}</span>
+                    <span>참 {getParticipantCount(cellParties[0])} · 설 {cellParties[0].capacity}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-1.5 hidden max-h-[calc(100%-2rem)] flex-col gap-1 overflow-hidden sm:mt-2 sm:flex sm:max-h-[calc(100%-2.75rem)]">
+                {cellParties.slice(0, 2).map((party, index) => (
+                  <BadgeLink
+                    key={party.id}
+                    href={`/admin/parties/${party.id}?from=calendar&date=${dateKey}`}
+                    className={index === 1 ? "hidden sm:inline-flex" : ""}
+                    timeLabel={formatTimeRange(party.start_at, party.end_at)}
+                    participantCount={getParticipantCount(party)}
+                    pendingCount={getPendingCount(party)}
+                    waitlistCount={getWaitlistCount(party)}
+                    capacity={party.capacity}
+                  >
+                    {party.title}
+                  </BadgeLink>
+                ))}
+                {cellParties.length > 2 ? <span className="px-1 text-[9px] font-medium text-[#7c95a8]">+{cellParties.length - 2}</span> : null}
+              </div>
+            </>
           ) : null}
         </div>
       </td>
@@ -74,33 +109,71 @@ export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
   };
 
   return (
-    <section className="space-y-6">
-      <article className="flex min-h-[calc(100vh-8.5rem)] flex-col overflow-hidden rounded-[30px] border border-[#1c2733] bg-[#0b141d] shadow-[0_24px_80px_rgba(0,0,0,0.22)] lg:min-h-[calc(100vh-6rem)]">
-        <div className="border-b border-[#17212b] px-4 py-4 sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <section className="space-y-4 lg:space-y-6">
+      <article className="flex min-h-0 flex-col bg-[#0b141d] lg:min-h-[calc(100vh-6rem)] lg:overflow-hidden lg:rounded-[30px] lg:border lg:border-[#1c2733] lg:shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
+        <div className="border-b border-[#17212b] px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="font-mono text-[11px] tracking-[0.28em] text-[#7fc3ff] uppercase">Calendar</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">월간 일정</h3>
+              <h3 className="mt-1.5 text-lg font-semibold text-white">월간 일정</h3>
             </div>
 
-            <div className="hidden items-center gap-3 lg:flex">
+            <div className="hidden items-center gap-2 lg:flex">
               <Metric label="선택 날짜" value={formatSelectedDate(selectedDate)} compact />
-              <Metric label="이벤트" value={String(selectedGroup?.parties.length ?? 0)} compact />
+              <Metric
+                label="신청 / 대기"
+                value={`${selectedSummary.pending} / ${selectedSummary.waitlist}`}
+                compact
+              />
+              <Metric
+                label="참가 / 설정"
+                value={`${selectedSummary.participants} / ${selectedSummary.capacity}`}
+                compact
+              />
+              <Metric
+                label="파티 시간"
+                value={
+                  selectedPrimaryParty
+                    ? formatTimeRange(selectedPrimaryParty.start_at, selectedPrimaryParty.end_at)
+                    : "-"
+                }
+                description={
+                  selectedGroup && selectedGroup.parties.length > 1
+                    ? `${selectedGroup.parties.length}건`
+                    : undefined
+                }
+                compact
+              />
               {selectedGroup ? (
-                <Link href={`/admin/parties/${selectedGroup.parties[0].id}`} className="inline-flex min-h-[64px] min-w-[132px] items-center justify-center rounded-[18px] border border-[#2f5c82] bg-[#0f2231] px-4 py-4 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
+                <Link href={`/admin/parties/${selectedGroup.parties[0].id}?from=calendar&date=${selectedKey}`} className="inline-flex min-h-[54px] min-w-[112px] items-center justify-center rounded-[16px] border border-[#2f5c82] bg-[#0f2231] px-3.5 py-3 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
                   파티 상세
                 </Link>
               ) : (
-                <Link href={`/admin/parties/new?date=${selectedKey}`} className="inline-flex min-h-[64px] min-w-[132px] items-center justify-center rounded-[18px] border border-[#2f5c82] bg-[#0f2231] px-4 py-4 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
+                <Link href={`/admin/parties/new?date=${selectedKey}`} className="inline-flex min-h-[54px] min-w-[112px] items-center justify-center rounded-[16px] border border-[#2f5c82] bg-[#0f2231] px-3.5 py-3 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
                   파티 생성
                 </Link>
               )}
             </div>
           </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 lg:hidden">
+            <Metric label="선택 날짜" value={formatSelectedDate(selectedDate)} compact />
+            <Metric
+              label="파티 시간"
+              value={
+                selectedPrimaryParty
+                  ? formatTimeRange(selectedPrimaryParty.start_at, selectedPrimaryParty.end_at)
+                  : "-"
+              }
+              compact
+            />
+            <Metric label="신청 / 대기" value={`${selectedSummary.pending} / ${selectedSummary.waitlist}`} compact />
+            <Metric label="참가 / 설정" value={`${selectedSummary.participants} / ${selectedSummary.capacity}`} compact />
+          </div>
         </div>
 
-        <div className="flex-1 p-2 sm:p-4 lg:flex lg:p-6">
-          <div className="rounded-[26px] border border-[#18222d] bg-[#0f1822] p-2 sm:p-4 lg:flex lg:flex-1 lg:p-6">
+        <div className="flex-1 px-0 pb-0 pt-1.5 sm:p-3 lg:flex lg:p-4">
+          <div className="px-2 pb-2 sm:rounded-[22px] sm:border sm:border-[#18222d] sm:bg-[#0f1822] sm:p-3 lg:flex lg:flex-1 lg:p-4">
             <DayPicker
               locale={ko}
               mode="single"
@@ -125,18 +198,18 @@ export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
               classNames={{
                 root: "w-full lg:flex lg:flex-1",
                 months: "w-full lg:flex-1",
-                month: "grid w-full grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-x-2 sm:grid-cols-[44px_minmax(0,1fr)_44px] sm:gap-x-3",
-                month_caption: "flex h-10 items-center justify-center",
-                caption_label: "text-sm font-semibold tracking-[0.02em] text-white sm:text-base",
-                button_previous: "inline-flex h-9 w-9 items-center justify-center justify-self-start rounded-full border border-[#22303d] bg-[#091119] text-white transition hover:border-[#7ad0ff] hover:text-[#7ad0ff] sm:h-11 sm:w-11",
-                button_next: "inline-flex h-9 w-9 items-center justify-center justify-self-end rounded-full border border-[#22303d] bg-[#091119] text-white transition hover:border-[#7ad0ff] hover:text-[#7ad0ff] sm:h-11 sm:w-11",
+                month: "grid w-full grid-cols-[36px_minmax(0,1fr)_36px] items-center gap-x-1.5 sm:grid-cols-[44px_minmax(0,1fr)_44px] sm:gap-x-3",
+                month_caption: "flex h-10 items-center justify-center sm:h-11",
+                caption_label: "text-[15px] font-semibold tracking-[0.02em] text-white sm:text-base",
+                button_previous: "inline-flex h-8 w-8 items-center justify-center justify-self-start rounded-full border border-[#22303d] bg-[#091119] text-white transition hover:border-[#7ad0ff] hover:text-[#7ad0ff] sm:h-11 sm:w-11",
+                button_next: "inline-flex h-8 w-8 items-center justify-center justify-self-end rounded-full border border-[#22303d] bg-[#091119] text-white transition hover:border-[#7ad0ff] hover:text-[#7ad0ff] sm:h-11 sm:w-11",
                 chevron: "h-4 w-4 fill-current",
-                month_grid: "col-span-3 mt-4 w-full table-fixed border-collapse",
+                month_grid: "col-span-3 mt-2.5 w-full table-fixed border-collapse sm:mt-4",
                 weekdays: "border-b border-[#17212b]",
-                weekday: "w-[14.285%] pb-2 text-center text-[10px] font-medium tracking-[0.12em] text-[#70879a] sm:pb-3 sm:text-[11px]",
+                weekday: "w-[14.285%] pb-1.5 text-center text-[10px] font-medium tracking-[0.08em] text-[#70879a] sm:pb-3 sm:text-[11px]",
                 week: "",
-                day: "w-[14.285%] align-top p-0.5 sm:p-1",
-                day_button: "inline-flex h-7 w-7 items-center justify-center rounded-[10px] border border-transparent text-[11px] font-medium text-white transition hover:border-[#31424f] hover:bg-[#13202c] sm:h-9 sm:w-9 sm:text-sm",
+                day: "w-[14.285%] align-top p-px sm:p-1",
+                day_button: "inline-flex h-7 w-7 items-center justify-center rounded-full border border-transparent text-[11px] font-medium text-white transition hover:border-[#31424f] hover:bg-[#13202c] sm:h-9 sm:w-9 sm:rounded-[10px] sm:text-sm",
                 today: "[&>button]:border-[#31424f] [&>button]:bg-[#13202c]",
                 selected: "[&>button]:border-[#7ad0ff] [&>button]:bg-[#7ad0ff] [&>button]:text-[#071019]",
                 outside: "[&>button]:text-white/18",
@@ -146,52 +219,53 @@ export function BranchCalendarView({ parties }: BranchCalendarViewProps) {
                 formatCaption: (month) => new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" }).format(month),
                 formatWeekdayName: (date) => new Intl.DateTimeFormat("ko-KR", { weekday: "narrow" }).format(date),
               }}
-            />
+              />
           </div>
         </div>
       </article>
 
-      <section className="grid gap-6 lg:hidden xl:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-          <Metric label="선택 날짜" value={formatSelectedDate(selectedDate)} />
-          <Metric label="이벤트" value={String(selectedGroup?.parties.length ?? 0)} />
+      <section className="grid gap-3 lg:hidden">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Metric
+            label="신청 / 대기"
+            value={`${selectedSummary.pending} / ${selectedSummary.waitlist}`}
+          />
+          <Metric
+            label="참가 / 설정"
+            value={`${selectedSummary.participants} / ${selectedSummary.capacity}`}
+          />
+          <Metric
+            label="파티 시간"
+            value={
+              selectedPrimaryParty
+                ? formatTimeRange(selectedPrimaryParty.start_at, selectedPrimaryParty.end_at)
+                : "-"
+            }
+          />
           <Metric label="월간 일정" value={String(groupedByDate.length)} />
-          {selectedGroup ? (
-            <Link href={`/admin/parties/${selectedGroup.parties[0].id}`} className="inline-flex items-center justify-center rounded-[18px] border border-[#2f5c82] bg-[#0f2231] px-4 py-4 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">파티 상세</Link>
-          ) : (
-            <Link href={`/admin/parties/new?date=${selectedKey}`} className="inline-flex items-center justify-center rounded-[18px] border border-[#2f5c82] bg-[#0f2231] px-4 py-4 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">파티 생성</Link>
-          )}
         </div>
 
-        <article className="overflow-hidden rounded-[30px] border border-[#1c2733] bg-[#0b141d] shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
-          <div className="border-b border-[#17212b] px-4 py-4 sm:px-6 sm:py-5">
-            <p className="font-mono text-[11px] tracking-[0.28em] text-[#7fc3ff] uppercase">Agenda</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">일정 목록</h3>
-          </div>
+        <div className="sticky bottom-3 z-10 -mx-1 px-1">
+          <div className="rounded-[18px] border border-[#22303d] bg-[#0b141d]/95 p-2.5 shadow-[0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur">
+            <p className="font-mono text-[10px] tracking-[0.22em] text-[#70879a] uppercase">선택 날짜</p>
+            <p className="mt-1 text-sm font-semibold text-white">{formatSelectedDate(selectedDate)}</p>
+            <div className="mt-1.5 space-y-0.5 text-[11px] text-[#8ea1b2]">
+              <p>신청 {selectedSummary.pending} / 대기 {selectedSummary.waitlist}</p>
+              <p>참가 {selectedSummary.participants} / 설정 {selectedSummary.capacity}</p>
+              <p>{selectedPrimaryParty ? formatTimeRange(selectedPrimaryParty.start_at, selectedPrimaryParty.end_at) : "-"}</p>
+            </div>
 
-          <div className="space-y-3 p-4 sm:p-5 lg:p-6">
             {selectedGroup ? (
-              selectedGroup.parties.map((party) => (
-                <div key={party.id} className="rounded-[22px] border border-[#18222d] bg-[#0f1822] px-4 py-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <Link href={`/admin/parties/${party.id}`} className="text-base font-semibold text-white transition hover:text-[#9fdcff]">{party.title}</Link>
-                      <p className="mt-1 text-sm text-[#8ea1b2]">{formatDateTimeRange(party.start_at, party.end_at)}</p>
-                    </div>
-                    <StatusPill tone={getPartyStatusTone(party.status)}>{party.status}</StatusPill>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <MiniInfo label="남자" value={String(party.male_capacity)} />
-                    <MiniInfo label="여자" value={String(party.female_capacity)} />
-                  </div>
-                </div>
-              ))
+              <Link href={`/admin/parties/${selectedGroup.parties[0].id}?from=calendar&date=${selectedKey}`} className="mt-2.5 inline-flex w-full items-center justify-center rounded-[16px] border border-[#2f5c82] bg-[#0f2231] px-4 py-3 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
+                파티 보기
+              </Link>
             ) : (
-              <EmptyBlock>선택한 날짜에 파티가 없습니다.</EmptyBlock>
+              <Link href={`/admin/parties/new?date=${selectedKey}`} className="mt-2.5 inline-flex w-full items-center justify-center rounded-[16px] border border-[#2f5c82] bg-[#0f2231] px-4 py-3 text-sm font-semibold text-[#d9f1ff] transition hover:border-[#7ad0ff] hover:bg-[#143247]">
+                파티 생성하기
+              </Link>
             )}
           </div>
-        </article>
+        </div>
       </section>
     </section>
   );
@@ -236,40 +310,113 @@ function formatSelectedDate(value: Date) {
   return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(value);
 }
 
-function formatDateTimeRange(startAt: string, endAt: string) {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  return `${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(start)} - ${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(end)}`;
+function summarizePartyCounts(parties: BranchPartyItem[]) {
+  return parties.reduce(
+    (totals, party) => {
+      totals.capacity += party.capacity;
+      totals.pending += getPendingCount(party);
+      totals.waitlist += getWaitlistCount(party);
+      totals.participants += getParticipantCount(party);
+      return totals;
+    },
+    {
+      capacity: 0,
+      pending: 0,
+      waitlist: 0,
+      participants: 0,
+    },
+  );
 }
 
-function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
-  return <div className={`rounded-[18px] border border-[#17212b] bg-[#0b141d] px-4 ${compact ? "min-w-[132px] py-3" : "py-4"}`}><p className="font-mono text-[10px] tracking-[0.22em] text-[#70879a] uppercase">{label}</p><p className="mt-2 text-sm font-semibold text-white">{value}</p></div>;
+function getPendingCount(party: BranchPartyItem) {
+  return Math.max(
+    party.male_applicant_count +
+      party.female_applicant_count -
+      party.male_waitlist_count -
+      party.female_waitlist_count,
+    0,
+  );
 }
 
-function MiniInfo({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-[18px] border border-[#17212b] bg-[#0b141d] px-3 py-3"><p className="font-mono text-[10px] tracking-[0.2em] text-[#70879a] uppercase">{label}</p><p className="mt-2 text-sm font-semibold text-white">{value}</p></div>;
+function getWaitlistCount(party: BranchPartyItem) {
+  return party.male_waitlist_count + party.female_waitlist_count;
 }
 
-function EmptyBlock({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-[22px] border border-dashed border-[#22303d] bg-[#0f1822] px-4 py-8 text-center text-sm text-[#8ea1b2]">{children}</div>;
+function getParticipantCount(party: BranchPartyItem) {
+  return party.male_participant_count + party.female_participant_count;
 }
 
-function StatusPill({ tone, children }: { tone: string; children: React.ReactNode }) {
-  return <span className={`inline-flex rounded-full border px-3 py-1 font-mono text-[11px] tracking-[0.16em] uppercase ${tone}`}>{children}</span>;
+function formatTimeRange(startAt: string, endAt: string) {
+  return `${formatTimeValue(startAt)}-${formatTimeValue(endAt)}`;
 }
 
-function BadgeLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
-  return <Link href={href} className={["inline-flex w-full max-w-full items-center rounded-[9px] border border-[#2f5c82] bg-[#102131] px-1.5 py-1 text-[9px] font-semibold text-[#dff4ff] transition hover:border-[#7ad0ff] hover:bg-[#153047] sm:rounded-[10px] sm:px-2 sm:text-[11px]", className].filter(Boolean).join(" ")}><span className="truncate">{children}</span></Link>;
+function formatTimeValue(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
 }
 
-function getPartyStatusTone(status: BranchPartyItem["status"]) {
-  return status === "published"
-    ? "border-[#285c43] bg-[#0f2018] text-[#8ee2b4]"
-    : status === "draft"
-      ? "border-[#274a63] bg-[#0d1a25] text-[#97d7ff]"
-      : status === "closed"
-        ? "border-[#665529] bg-[#211a0d] text-[#f0d18a]"
-        : status === "cancelled"
-          ? "border-[#5a2430] bg-[#1a0d12] text-[#ffd7de]"
-          : "border-[#3c4854] bg-[#131920] text-[#a5b3bf]";
+function Metric({
+  label,
+  value,
+  description,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  description?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`rounded-[16px] border border-[#17212b] bg-[#0b141d] px-3.5 ${compact ? "min-w-[120px] py-2.5" : "py-3"}`}>
+      <p className="font-mono text-[10px] tracking-[0.22em] text-[#70879a] uppercase">{label}</p>
+      <p className="mt-1.5 text-[13px] font-semibold text-white">{value}</p>
+      {description ? <p className="mt-0.5 text-[10px] text-[#7f94a7]">{description}</p> : null}
+    </div>
+  );
+}
+
+function BadgeLink({
+  href,
+  children,
+  className,
+  timeLabel,
+  participantCount,
+  pendingCount,
+  waitlistCount,
+  capacity,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+  timeLabel: string;
+  participantCount: number;
+  pendingCount: number;
+  waitlistCount: number;
+  capacity: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "inline-flex w-full max-w-full flex-col rounded-[8px] border border-[#2f5c82] bg-[#102131] px-1.5 py-1 text-[9px] font-semibold text-[#dff4ff] transition hover:border-[#7ad0ff] hover:bg-[#153047] sm:rounded-[9px] sm:px-1.5 sm:py-1 sm:text-[10px]",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span className="truncate">{children}</span>
+      <span className="mt-0.5 text-[7px] font-medium text-[#8fb7d6] sm:text-[8px]">
+        {timeLabel}
+      </span>
+      <span className="mt-0.5 text-[7px] font-medium text-[#8fb7d6] sm:text-[8px]">
+        신 {pendingCount} · 대 {waitlistCount}
+      </span>
+      <span className="mt-0.5 text-[7px] font-medium text-[#8fb7d6] sm:text-[8px]">
+        참 {participantCount} · 설 {capacity}
+      </span>
+    </Link>
+  );
 }

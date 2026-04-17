@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AdminSession } from "@/features/admin-auth/server/types";
 
@@ -67,6 +68,10 @@ export async function getBranchDetailForAdmin(admin: AdminSession, branchId: str
     return null;
   }
 
+  return getBranchDetailById(branchId);
+}
+
+const getBranchDetailById = cache(async (branchId: string) => {
   const supabaseAdmin = createSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from("branches")
@@ -79,7 +84,7 @@ export async function getBranchDetailForAdmin(admin: AdminSession, branchId: str
   }
 
   return data as BranchDetailItem;
-}
+});
 
 export async function createBranch(input: {
   name: string;

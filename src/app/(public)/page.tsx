@@ -1,5 +1,8 @@
 import { ReservationCalendar } from "@/features/reservations/components/ReservationCalendar";
+import { listPublicPartyOptions } from "@/features/reservations/server/public-reservations";
 
-export default function PublicHomePage() {
-  return <ReservationCalendar />;
+export default async function PublicHomePage() {
+  const partyOptions = await listPublicPartyOptions();
+
+  return <ReservationCalendar partyOptions={partyOptions} />;
 }

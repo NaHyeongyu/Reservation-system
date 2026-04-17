@@ -1,9 +1,10 @@
+import { notFound } from "next/navigation";
 import { ReservationApplyForm } from "@/features/reservations/components/ReservationApplyForm";
+import { getPublicPartyOption } from "@/features/reservations/server/public-reservations";
 
 type ReservationApplyPageProps = {
   searchParams: Promise<{
-    date?: string | string[];
-    branch?: string | string[];
+    party?: string | string[];
   }>;
 };
 
@@ -19,11 +20,17 @@ export default async function ReservationApplyPage({
   searchParams,
 }: ReservationApplyPageProps) {
   const params = await searchParams;
+  const partyId = getSingleValue(params.party);
 
-  return (
-    <ReservationApplyForm
-      selectedDate={getSingleValue(params.date)}
-      selectedBranchSlug={getSingleValue(params.branch)}
-    />
-  );
+  if (!partyId) {
+    notFound();
+  }
+
+  const party = await getPublicPartyOption(partyId);
+
+  if (!party) {
+    notFound();
+  }
+
+  return <ReservationApplyForm party={party} />;
 }

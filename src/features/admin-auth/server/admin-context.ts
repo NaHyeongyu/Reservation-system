@@ -1,11 +1,12 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AdminSession, AdminStatus } from "./types";
 
-export async function getCurrentAdminContext(): Promise<AdminSession | null> {
+const getCurrentAuthUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -15,14 +16,34 @@ export async function getCurrentAdminContext(): Promise<AdminSession | null> {
     return null;
   }
 
+  return user;
+});
+
+const getAdminUserByAuthUserId = cache(async (authUserId: string) => {
   const supabaseAdmin = createSupabaseAdminClient();
   const { data: adminUser, error } = await supabaseAdmin
     .from("admin_users")
     .select("id, auth_user_id, login_id, role, status")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", authUserId)
     .maybeSingle();
 
   if (error || !adminUser) {
+    return null;
+  }
+
+  return adminUser;
+});
+
+export const getCurrentAdminContext = cache(async (): Promise<AdminSession | null> => {
+  const user = await getCurrentAuthUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const adminUser = await getAdminUserByAuthUserId(user.id);
+
+  if (!adminUser) {
     return null;
   }
 
@@ -37,7 +58,7 @@ export async function getCurrentAdminContext(): Promise<AdminSession | null> {
     status: adminUser.status as AdminStatus,
     branchIds,
   };
-}
+});
 
 export async function requireAdminContext() {
   const admin = await getCurrentAdminContext();
@@ -77,7 +98,7 @@ export async function requireBranchAccessContext(branchId: string) {
   return admin;
 }
 
-async function getBranchIdsForAdmin(adminUserId: string) {
+const getBranchIdsForAdmin = cache(async (adminUserId: string) => {
   const supabaseAdmin = createSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from("admin_user_branch_access")
@@ -89,4 +110,4 @@ async function getBranchIdsForAdmin(adminUserId: string) {
   }
 
   return data.map((item) => item.branch_id);
-}
+});

@@ -1,9 +1,10 @@
+import { notFound } from "next/navigation";
 import { ReservationCompleteView } from "@/features/reservations/components/ReservationCompleteView";
+import { getPublicReservationCompleteData } from "@/features/reservations/server/public-reservations";
 
 type ReservationCompletePageProps = {
   searchParams: Promise<{
-    date?: string | string[];
-    branch?: string | string[];
+    code?: string | string[];
   }>;
 };
 
@@ -19,11 +20,17 @@ export default async function ReservationCompletePage({
   searchParams,
 }: ReservationCompletePageProps) {
   const params = await searchParams;
+  const reservationCode = getSingleValue(params.code);
 
-  return (
-    <ReservationCompleteView
-      selectedDate={getSingleValue(params.date)}
-      selectedBranchSlug={getSingleValue(params.branch)}
-    />
-  );
+  if (!reservationCode) {
+    notFound();
+  }
+
+  const reservation = await getPublicReservationCompleteData(reservationCode);
+
+  if (!reservation) {
+    notFound();
+  }
+
+  return <ReservationCompleteView reservation={reservation} />;
 }
