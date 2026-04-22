@@ -3,7 +3,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { getAdminSessionSecret } from "@/lib/supabase/env";
+import { getAdminSessionSecret } from "@/lib/supabase/secret-env";
 import type {
   AdminBranchSnapshot,
   AdminSession,
