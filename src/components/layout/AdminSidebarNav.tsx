@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
 
 type NavigationItem = {
   href: string;
@@ -36,15 +38,41 @@ export function AdminSidebarNav({
           >
             메뉴
           </button>
-          <div className="min-w-0 text-right">
-            <p className="truncate text-sm font-semibold text-white">{loginId}</p>
-            <p className="text-xs text-[#7c95a8]">{roleLabel}</p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src={BRAND_LOGO_SRC}
+              alt={BRAND_LOGO_ALT}
+              width={427}
+              height={584}
+              priority
+              className="h-auto w-7 shrink-0 object-contain"
+            />
+            <div className="min-w-0 text-right">
+              <p className="truncate text-sm font-semibold text-white">{loginId}</p>
+              <p className="text-xs text-[#7c95a8]">{roleLabel}</p>
+            </div>
           </div>
         </div>
       </div>
 
       <aside className="hidden border-r border-[#17212b] bg-[#091119] lg:flex lg:min-h-full lg:flex-col">
         <div className="flex-1 px-4 py-4">
+          <Link
+            href="/admin/dashboard"
+            className="mb-6 flex items-center gap-3 rounded-[18px] border border-[#17212b] bg-[#0b141d] px-4 py-3"
+          >
+            <Image
+              src={BRAND_LOGO_SRC}
+              alt={BRAND_LOGO_ALT}
+              width={427}
+              height={584}
+              priority
+              className="h-auto w-8 shrink-0 object-contain"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">Admin</p>
+            </div>
+          </Link>
           <nav className="space-y-2">
             {navigationItems.map((item) => (
               <NavItem
@@ -75,9 +103,19 @@ export function AdminSidebarNav({
           />
           <aside className="relative flex h-full w-[84%] max-w-[320px] flex-col border-r border-[#17212b] bg-[#091119] shadow-[0_24px_80px_rgba(0,0,0,0.48)]">
             <div className="flex items-center justify-between border-b border-[#17212b] px-4 py-4">
-              <div>
-                <p className="truncate text-sm font-semibold text-white">{loginId}</p>
-                <p className="mt-1 text-xs text-[#7c95a8]">{roleLabel}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Image
+                  src={BRAND_LOGO_SRC}
+                  alt={BRAND_LOGO_ALT}
+                  width={427}
+                  height={584}
+                  priority
+                  className="h-auto w-8 shrink-0 object-contain"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">{loginId}</p>
+                  <p className="mt-1 text-xs text-[#7c95a8]">{roleLabel}</p>
+                </div>
               </div>
               <button
                 type="button"

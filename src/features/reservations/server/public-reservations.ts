@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
+import { isFeaturedPublicParty } from "@/features/reservations/featured-party";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   PublicPartyOption,
@@ -151,6 +152,12 @@ export async function getPublicPartyOption(partyId: string) {
   noStore();
   const options = await listPublicPartyOptions();
   return options.find((party) => party.id === partyId) ?? null;
+}
+
+export async function getFeaturedPublicPartyOption() {
+  noStore();
+  const options = await listPublicPartyOptions();
+  return options.find(isFeaturedPublicParty) ?? null;
 }
 
 export async function createPublicReservation(

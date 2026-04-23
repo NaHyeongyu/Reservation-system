@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
 import { signInAdminAccountAction } from "../_actions/sign-in-admin-account";
 
 const initialState = {
@@ -16,7 +18,22 @@ export function AdminLoginForm() {
       action={formAction}
       className="grid gap-4 rounded-[30px] border border-[#1c2733] bg-[#0b141d] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
     >
-      <h1 className="text-2xl font-semibold text-white">로그인</h1>
+      <div className="flex items-center gap-3">
+        <Image
+          src={BRAND_LOGO_SRC}
+          alt={BRAND_LOGO_ALT}
+          width={427}
+          height={584}
+          priority
+          className="h-auto w-9 shrink-0 object-contain"
+        />
+        <div>
+          <p className="text-xs font-medium tracking-[0.2em] text-[#7c95a8] uppercase">
+            Admin
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold text-white">로그인</h1>
+        </div>
+      </div>
 
       <Field label="아이디" htmlFor="loginId">
         <input

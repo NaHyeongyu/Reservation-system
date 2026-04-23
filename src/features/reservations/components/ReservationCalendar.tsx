@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
+import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
 import type { PublicPartyOption } from "@/features/reservations/shared";
 import { getPublicDateKey } from "@/features/reservations/shared";
 import { useCalendarMonth } from "../hooks/useCalendarMonth";
@@ -82,10 +83,10 @@ export function ReservationCalendar({ partyOptions }: ReservationCalendarProps) 
         <header className="pb-5">
           <div className="mb-4 flex flex-col items-center gap-3">
             <Image
-              src="/jimoon_logo.png"
-              alt="Jimoon"
-              width={760}
-              height={1040}
+              src={BRAND_LOGO_SRC}
+              alt={BRAND_LOGO_ALT}
+              width={427}
+              height={584}
               priority
               className="h-auto w-14 object-contain sm:w-16"
             />

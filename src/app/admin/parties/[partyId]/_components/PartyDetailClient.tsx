@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminFlashNotice } from "@/components/layout/AdminFlashNotice";
 import { updatePartyReservationAction } from "@/app/admin/parties/[partyId]/_actions/update-party-reservation";
 import { BranchSettingsDialog } from "./BranchSettingsDialog";
@@ -17,6 +17,8 @@ type ReservationStatus =
   | "rejected"
   | "completed"
   | "no_show";
+
+type ReservationGenderFilter = "all" | "male" | "female";
 
 type ReservationItem = {
   id: string;
@@ -75,6 +77,14 @@ export function PartyDetailClient({
   const [reservations, setReservations] = useState(initialReservations);
   const [pendingReservationId, setPendingReservationId] = useState<string | null>(null);
   const [notice, setNotice] = useState<LocalNotice | null>(null);
+  const [selectedQueueReservationId, setSelectedQueueReservationId] = useState<string | null>(
+    null,
+  );
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+  const [queueGenderFilter, setQueueGenderFilter] =
+    useState<ReservationGenderFilter>("all");
+  const [participantGenderFilter, setParticipantGenderFilter] =
+    useState<ReservationGenderFilter>("all");
 
   const applicants = useMemo(
     () => reservations.filter((item) => item.status === "pending"),
@@ -101,17 +111,51 @@ export function PartyDetailClient({
       ),
     [applicants, waitlist],
   );
+  const filteredApplicants = useMemo(
+    () => filterReservationsByGender(applicants, queueGenderFilter),
+    [applicants, queueGenderFilter],
+  );
+  const filteredWaitlist = useMemo(
+    () => filterReservationsByGender(waitlist, queueGenderFilter),
+    [waitlist, queueGenderFilter],
+  );
+  const filteredApplicantQueue = useMemo(
+    () => filterReservationsByGender(applicantQueue, queueGenderFilter),
+    [applicantQueue, queueGenderFilter],
+  );
+  const filteredParticipants = useMemo(
+    () => filterReservationsByGender(participants, participantGenderFilter),
+    [participants, participantGenderFilter],
+  );
+  const selectedQueueReservation = useMemo(
+    () =>
+      selectedQueueReservationId
+        ? applicantQueue.find((item) => item.id === selectedQueueReservationId) ?? null
+        : null,
+    [applicantQueue, selectedQueueReservationId],
+  );
+  const selectedParticipant = useMemo(
+    () =>
+      selectedParticipantId
+        ? participants.find((item) => item.id === selectedParticipantId) ?? null
+        : null,
+    [participants, selectedParticipantId],
+  );
   const waitlistPriorityMap = useMemo(
-    () => new Map(waitlist.map((item, index) => [item.id, index + 1])),
-    [waitlist],
+    () => new Map(filteredWaitlist.map((item, index) => [item.id, index + 1])),
+    [filteredWaitlist],
   );
 
   const applicantCount = applicants.length;
   const participantCount = participants.length;
   const waitlistCount = waitlist.length;
   const remainingCount = Math.max(party.capacity - participantCount, 0);
-  const applicantQueueGenderSummary = getGenderSummary(applicantQueue);
+  const filteredApplicantCount = filteredApplicants.length;
+  const filteredParticipantCount = filteredParticipants.length;
+  const filteredWaitlistCount = filteredWaitlist.length;
+  const applicantQueueGenderSummary = getGenderSummary(filteredApplicantQueue);
   const participantGenderSummary = getGenderSummary(participants);
+  const filteredParticipantGenderSummary = getGenderSummary(filteredParticipants);
   const remainingMaleCount = Math.max(
     party.maleCapacity - participantGenderSummary.male,
     0,
@@ -120,9 +164,51 @@ export function PartyDetailClient({
     party.femaleCapacity - participantGenderSummary.female,
     0,
   );
+  const queueFilterCounts = useMemo(
+    () => getGenderFilterCounts(applicantQueue),
+    [applicantQueue],
+  );
+  const participantFilterCounts = useMemo(
+    () => getGenderFilterCounts(participants),
+    [participants],
+  );
   const isPublicVisible = party.status === "published";
   const canTogglePublicVisibility =
     party.status === "draft" || party.status === "published";
+  const selectedDetailReservation = selectedQueueReservation ?? selectedParticipant;
+
+  useEffect(() => {
+    if (!selectedDetailReservation) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectedQueueReservationId(null);
+        setSelectedParticipantId(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedDetailReservation]);
+
+  function handleSelectQueueReservation(reservationId: string) {
+    setSelectedParticipantId(null);
+    setSelectedQueueReservationId(reservationId);
+  }
+
+  function handleSelectParticipantReservation(reservationId: string) {
+    setSelectedQueueReservationId(null);
+    setSelectedParticipantId(reservationId);
+  }
 
   async function handleReservationAction(
     reservationId: string,
@@ -163,6 +249,12 @@ export function PartyDetailClient({
           item.id === reservationId ? { ...item, status: nextStatus } : item,
         ),
       );
+      if (selectedQueueReservationId === reservationId) {
+        setSelectedQueueReservationId(null);
+      }
+      if (selectedParticipantId === reservationId) {
+        setSelectedParticipantId(null);
+      }
       setNotice({
         id: Date.now(),
         tone: "info",
@@ -273,13 +365,29 @@ export function PartyDetailClient({
   const applicantQueueSection = (
     <ReservationColumn
       title="신청 / 대기"
-      rows={applicantQueue}
+      rows={filteredApplicantQueue}
       emptyText="신청 내역이 없습니다."
       canConfirm
       showStatus
       waitlistPriorityMap={waitlistPriorityMap}
-      summary={`${applicantCount + waitlistCount}/${party.capacity}명`}
-      detail={`신청 ${applicantCount} / 대기 ${waitlistCount} / 남 ${applicantQueueGenderSummary.male}/${party.maleCapacity} / 여 ${applicantQueueGenderSummary.female}/${party.femaleCapacity}`}
+      summary={getQueueSummaryLabel(
+        queueGenderFilter,
+        filteredApplicantCount,
+        filteredWaitlistCount,
+        party.capacity,
+        party.maleCapacity,
+        party.femaleCapacity,
+      )}
+      detail={
+        queueGenderFilter === "all"
+          ? `신청 ${filteredApplicantCount} / 대기 ${filteredWaitlistCount} / 남 ${applicantQueueGenderSummary.male}/${party.maleCapacity} / 여 ${applicantQueueGenderSummary.female}/${party.femaleCapacity}`
+          : `신청 ${filteredApplicantCount} / 대기 ${filteredWaitlistCount}`
+      }
+      genderFilter={queueGenderFilter}
+      onGenderFilterChange={setQueueGenderFilter}
+      filterCounts={queueFilterCounts}
+      selectedReservationId={selectedQueueReservationId}
+      onSelectReservation={handleSelectQueueReservation}
       remainingSeats={{ male: remainingMaleCount, female: remainingFemaleCount }}
       pendingReservationId={pendingReservationId}
       onConfirm={(reservationId) => handleReservationAction(reservationId, "confirmed")}
@@ -290,10 +398,25 @@ export function PartyDetailClient({
   const participantSection = (
     <ReservationColumn
       title="참가자"
-      rows={participants}
+      rows={filteredParticipants}
       emptyText="참가자가 없습니다."
-      summary={`${participantCount}/${party.capacity}명`}
-      detail={`남 ${participantGenderSummary.male}/${party.maleCapacity} / 여 ${participantGenderSummary.female}/${party.femaleCapacity}`}
+      summary={getParticipantSummaryLabel(
+        participantGenderFilter,
+        filteredParticipantCount,
+        party.capacity,
+        party.maleCapacity,
+        party.femaleCapacity,
+      )}
+      detail={
+        participantGenderFilter === "all"
+          ? `남 ${filteredParticipantGenderSummary.male}/${party.maleCapacity} / 여 ${filteredParticipantGenderSummary.female}/${party.femaleCapacity}`
+          : null
+      }
+      genderFilter={participantGenderFilter}
+      onGenderFilterChange={setParticipantGenderFilter}
+      filterCounts={participantFilterCounts}
+      selectedReservationId={selectedParticipantId}
+      onSelectReservation={handleSelectParticipantReservation}
       pendingReservationId={pendingReservationId}
       onCancel={(reservationId) => handleReservationAction(reservationId, "cancelled")}
     />
@@ -345,6 +468,22 @@ export function PartyDetailClient({
         />
       </div>
 
+      {selectedQueueReservation ? (
+        <ReservationDetailDialog
+          eyebrow="Reservation"
+          title="신청 / 대기 상세"
+          reservation={selectedQueueReservation}
+          onClose={() => setSelectedQueueReservationId(null)}
+        />
+      ) : selectedParticipant ? (
+        <ReservationDetailDialog
+          eyebrow="Participant"
+          title="참가자 상세"
+          reservation={selectedParticipant}
+          onClose={() => setSelectedParticipantId(null)}
+        />
+      ) : null}
+
       <div className="hidden space-y-6 lg:block">
         {partyInfoSection}
         <section className="grid gap-6 xl:grid-cols-2">
@@ -365,6 +504,11 @@ function ReservationColumn({
   waitlistPriorityMap,
   summary,
   detail,
+  genderFilter = "all",
+  onGenderFilterChange,
+  filterCounts,
+  selectedReservationId,
+  onSelectReservation,
   remainingSeats,
   pendingReservationId,
   onConfirm,
@@ -377,7 +521,12 @@ function ReservationColumn({
   showStatus?: boolean;
   waitlistPriorityMap?: Map<string, number>;
   summary?: string;
-  detail?: string;
+  detail?: string | null;
+  genderFilter?: ReservationGenderFilter;
+  onGenderFilterChange: (value: ReservationGenderFilter) => void;
+  filterCounts: { all: number; male: number; female: number };
+  selectedReservationId?: string | null;
+  onSelectReservation?: (reservationId: string) => void;
   remainingSeats?: { male: number; female: number };
   pendingReservationId: string | null;
   onConfirm?: (reservationId: string) => void;
@@ -386,20 +535,30 @@ function ReservationColumn({
   return (
     <article className="flex min-h-0 flex-col overflow-hidden rounded-[24px] border border-[#1c2733] bg-[#0b141d] shadow-[0_24px_80px_rgba(0,0,0,0.22)] sm:rounded-[26px]">
       <div className="border-b border-[#17212b] px-4 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <p className="font-mono text-[11px] tracking-[0.28em] text-[#7fc3ff] uppercase">
-            {title}
-          </p>
-          {summary ? (
-            <div className="text-right">
-              <p className="text-sm font-semibold text-white">{summary}</p>
-              {detail ? <p className="mt-1 text-xs text-[#7f94a7]">{detail}</p> : null}
-            </div>
-          ) : null}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-4">
+            <p className="font-mono text-[11px] tracking-[0.28em] text-[#7fc3ff] uppercase">
+              {title}
+            </p>
+            {summary ? (
+              <div className="text-right">
+                <p className="text-sm font-semibold text-white">{summary}</p>
+                {detail ? <p className="mt-1 text-xs text-[#7f94a7]">{detail}</p> : null}
+              </div>
+            ) : null}
+          </div>
+
+          <GenderFilterTabs
+            value={genderFilter}
+            onChange={onGenderFilterChange}
+            allCount={filterCounts.all}
+            maleCount={filterCounts.male}
+            femaleCount={filterCounts.female}
+          />
         </div>
       </div>
 
-      <div className="space-y-2 overflow-y-auto p-3 xl:max-h-[calc(100vh-24rem)] 2xl:max-h-[calc(100vh-22rem)]">
+      <div className="space-y-2 p-3">
         {rows.length === 0 ? (
           <EmptyBlock>{emptyText}</EmptyBlock>
         ) : (
@@ -410,11 +569,42 @@ function ReservationColumn({
                 : false) || pendingReservationId !== null;
 
             const cancelDisabled = pendingReservationId !== null;
+            const hasSecondaryDetails =
+              Boolean(row.applicant_birth_date) ||
+              Boolean(row.bank_name) ||
+              Boolean(row.account_number) ||
+              row.referral_sources.length > 0;
+            const isSelectable = Boolean(onSelectReservation);
+            const isSelected = selectedReservationId === row.id;
 
             return (
               <article
                 key={row.id}
-                className="rounded-[18px] border border-[#18222d] bg-[#0f1822] px-3 py-3"
+                role={isSelectable ? "button" : undefined}
+                tabIndex={isSelectable ? 0 : undefined}
+                aria-pressed={isSelectable ? isSelected : undefined}
+                onClick={
+                  isSelectable && onSelectReservation
+                    ? () => onSelectReservation(row.id)
+                    : undefined
+                }
+                onKeyDown={
+                  isSelectable && onSelectReservation
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectReservation(row.id);
+                        }
+                      }
+                    : undefined
+                }
+                className={[
+                  "rounded-[18px] border bg-[#0f1822] px-3 py-3",
+                  isSelectable ? "cursor-pointer transition focus:outline-none" : "",
+                  isSelected
+                    ? "border-[#3f7aa3] bg-[#122130] shadow-[0_0_0_1px_rgba(122,208,255,0.18)]"
+                    : "border-[#18222d]",
+                ].join(" ")}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -434,32 +624,38 @@ function ReservationColumn({
                       {row.reservation_code}
                     </p>
                   </div>
+                  <p className="shrink-0 text-[11px] text-[#7f94a7]">
+                    {formatConsoleDateTime(row.submitted_at)}
+                  </p>
                 </div>
 
-                <div className="mt-3 text-sm text-[#9db0bf]">
-                  <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <CompactField label="성별" value={formatGenderLabel(row.applicant_gender)} />
-                    <CompactField label="생년월일" value={formatBirthDate(row.applicant_birth_date)} />
-                    <CompactField label="전화번호" value={row.reserver_phone} />
-                    <CompactField label="은행명" value={row.bank_name ?? "-"} />
-                    <CompactField label="계좌번호" value={row.account_number ?? "-"} />
-                    <CompactField label="유입경로" value={formatReferralSources(row.referral_sources)} />
-                    <CompactField label="신청시간" value={formatConsoleDateTime(row.submitted_at)} />
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-[#9db0bf]">
+                  <MetaPill
+                    tone={row.reserver_phone ? "default" : "danger"}
+                    label={row.reserver_phone || "전화번호 없음"}
+                  />
+                  <MetaPill label={formatGenderLabel(row.applicant_gender)} />
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   {canConfirm && remainingSeats ? (
                     <div className="mr-1 flex flex-wrap items-center gap-1">
-                      <SeatPill label="남은 남" value={remainingSeats.male} />
-                      <SeatPill label="남은 여" value={remainingSeats.female} />
+                      {genderFilter !== "female" ? (
+                        <SeatPill label="남은 남" value={remainingSeats.male} />
+                      ) : null}
+                      {genderFilter !== "male" ? (
+                        <SeatPill label="남은 여" value={remainingSeats.female} />
+                      ) : null}
                     </div>
                   ) : null}
                   {canConfirm && onConfirm ? (
                     <button
                       type="button"
                       disabled={confirmDisabled}
-                      onClick={() => onConfirm(row.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onConfirm(row.id);
+                      }}
                       title={
                         confirmDisabled && pendingReservationId === null
                           ? row.applicant_gender === "male"
@@ -497,7 +693,10 @@ function ReservationColumn({
                   <button
                     type="button"
                     disabled={cancelDisabled}
-                    onClick={() => onCancel(row.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onCancel(row.id);
+                    }}
                     className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#6b2a38] bg-[#180d12] px-3 py-1.5 text-[11px] font-semibold text-[#ffd7de] transition hover:border-[#c25269] hover:bg-[#221118] hover:text-white disabled:cursor-not-allowed disabled:border-[#3d2a31] disabled:bg-[#151114] disabled:text-[#826771] sm:rounded-[12px]"
                   >
                     <svg
@@ -517,12 +716,216 @@ function ReservationColumn({
                     {pendingReservationId === row.id ? "처리 중..." : "삭제"}
                   </button>
                 </div>
+
+                {hasSecondaryDetails ? (
+                  <details
+                    className="group mt-3 border-t border-[#17212b] pt-3"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold text-[#8ea1b2] [&::-webkit-details-marker]:hidden">
+                      <span>추가 정보</span>
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#22303d] bg-[#0b141d] text-[#9fdcff] transition group-open:rotate-180">
+                        <svg
+                          viewBox="0 0 16 16"
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M4.5 6.25L8 9.75L11.5 6.25"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </summary>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {row.applicant_birth_date ? (
+                        <DisclosureField
+                          label="생년월일"
+                          value={formatBirthDate(row.applicant_birth_date)}
+                        />
+                      ) : null}
+                      {row.bank_name || row.account_number ? (
+                        <DisclosureField
+                          label="입금정보"
+                          value={formatBankAccount(row.bank_name, row.account_number)}
+                        />
+                      ) : null}
+                      {row.referral_sources.length > 0 ? (
+                        <DisclosureField
+                          label="유입경로"
+                          value={formatReferralSources(row.referral_sources)}
+                        />
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
               </article>
             );
           })
         )}
       </div>
     </article>
+  );
+}
+
+function ReservationDetailDialog({
+  eyebrow,
+  title,
+  reservation,
+  onClose,
+}: {
+  eyebrow: string;
+  title: string;
+  reservation: ReservationItem;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#04080ccc]/80 px-3 py-6 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-[#1c2733] bg-[#0b141d] shadow-[0_30px_120px_rgba(0,0,0,0.42)]">
+        <div className="flex items-center justify-between border-b border-[#17212b] px-5 py-4 sm:px-6">
+          <div>
+            <p className="font-mono text-[11px] tracking-[0.24em] text-[#7fc3ff] uppercase">
+              {eyebrow}
+            </p>
+            <p className="mt-2 text-lg font-semibold text-white">{title}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#223140] bg-[#0f1822] text-[#9cb0c0] transition hover:border-[#7ad0ff] hover:text-white"
+            aria-label="팝업 닫기"
+          >
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden="true">
+              <path
+                d="M4 4L12 12M12 4L4 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="max-h-[calc(100vh-5rem)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+          <div className="rounded-[18px] border border-[#2b5878] bg-[#10202d] px-4 py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <StatusBadge status={reservation.status} />
+                  <GenderBadge gender={reservation.applicant_gender} />
+                </div>
+                <p className="mt-2 text-base font-semibold text-white">
+                  {reservation.reserver_name}
+                </p>
+                <p className="mt-1 text-xs text-[#9fc7e1]">
+                  {reservation.reservation_code}
+                </p>
+              </div>
+              <p className="text-xs text-[#8ea1b2]">
+                신청 {formatConsoleDateTime(reservation.submitted_at)}
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <DisclosureField
+                label="전화번호"
+                value={reservation.reserver_phone || "-"}
+              />
+              <DisclosureField
+                label="생년월일"
+                value={formatBirthDate(reservation.applicant_birth_date)}
+              />
+              <DisclosureField
+                label="입금정보"
+                value={formatBankAccount(reservation.bank_name, reservation.account_number)}
+              />
+              <DisclosureField
+                label="유입경로"
+                value={formatReferralSources(reservation.referral_sources)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GenderFilterTabs({
+  value,
+  onChange,
+  allCount,
+  maleCount,
+  femaleCount,
+}: {
+  value: ReservationGenderFilter;
+  onChange: (value: ReservationGenderFilter) => void;
+  allCount: number;
+  maleCount: number;
+  femaleCount: number;
+}) {
+  const options: Array<{
+    value: ReservationGenderFilter;
+    label: string;
+    count: number;
+    activeClassName: string;
+  }> = [
+    {
+      value: "all",
+      label: "전체",
+      count: allCount,
+      activeClassName: "border-[#2f5c82] bg-[#0f2231] text-[#d9f1ff]",
+    },
+    {
+      value: "male",
+      label: "남자",
+      count: maleCount,
+      activeClassName: "border-[#365f8f] bg-[#0f2033] text-[#9cd2ff]",
+    },
+    {
+      value: "female",
+      label: "여자",
+      count: femaleCount,
+      activeClassName: "border-[#8a4662] bg-[#26131d] text-[#ffb8d0]",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {options.map((option) => {
+        const isActive = value === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={[
+              "flex min-h-[52px] flex-col items-center justify-center rounded-[14px] border px-3 py-2 text-center transition",
+              isActive
+                ? option.activeClassName
+                : "border-transparent bg-[#0f1822] text-[#a8bac8] hover:border-[#22303d] hover:text-white",
+            ].join(" ")}
+          >
+            <span className="text-sm font-semibold">{option.label}</span>
+            <span className="mt-1 text-[11px] opacity-80">{option.count}명</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -543,6 +946,66 @@ function getGenderSummary(
     },
     { male: 0, female: 0 },
   );
+}
+
+function filterReservationsByGender(
+  rows: ReservationItem[],
+  genderFilter: ReservationGenderFilter,
+) {
+  if (genderFilter === "all") {
+    return rows;
+  }
+
+  return rows.filter((row) => row.applicant_gender === genderFilter);
+}
+
+function getGenderFilterCounts(rows: ReservationItem[]) {
+  const summary = getGenderSummary(rows);
+
+  return {
+    all: rows.length,
+    male: summary.male,
+    female: summary.female,
+  };
+}
+
+function getQueueSummaryLabel(
+  genderFilter: ReservationGenderFilter,
+  applicantCount: number,
+  waitlistCount: number,
+  capacity: number,
+  maleCapacity: number,
+  femaleCapacity: number,
+) {
+  const total = applicantCount + waitlistCount;
+
+  if (genderFilter === "male") {
+    return `${total}/${maleCapacity}명`;
+  }
+
+  if (genderFilter === "female") {
+    return `${total}/${femaleCapacity}명`;
+  }
+
+  return `${total}/${capacity}명`;
+}
+
+function getParticipantSummaryLabel(
+  genderFilter: ReservationGenderFilter,
+  participantCount: number,
+  capacity: number,
+  maleCapacity: number,
+  femaleCapacity: number,
+) {
+  if (genderFilter === "male") {
+    return `${participantCount}/${maleCapacity}명`;
+  }
+
+  if (genderFilter === "female") {
+    return `${participantCount}/${femaleCapacity}명`;
+  }
+
+  return `${participantCount}/${capacity}명`;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -569,9 +1032,29 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CompactField({ label, value }: { label: string; value: string }) {
+function MetaPill({
+  label,
+  tone = "default",
+}: {
+  label: string;
+  tone?: "default" | "danger";
+}) {
   return (
-    <div className="rounded-[12px] border border-[#17212b] bg-[#0b141d] px-2.5 py-2">
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] ${
+        tone === "danger"
+          ? "border-[#6b2a38] bg-[#180d12] text-[#ffd7de]"
+          : "border-[#22303d] bg-[#0b141d] text-[#9db0bf]"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function DisclosureField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[14px] border border-[#17212b] bg-[#0b141d] px-3 py-2.5">
       <p className="font-mono text-[9px] tracking-[0.16em] text-[#70879a] uppercase">
         {label}
       </p>
@@ -708,6 +1191,14 @@ function formatGenderLabel(value: ReservationItem["applicant_gender"]) {
 
 function formatReferralSources(values: string[]) {
   return values.length > 0 ? values.join(", ") : "-";
+}
+
+function formatBankAccount(bankName: string | null, accountNumber: string | null) {
+  if (bankName && accountNumber) {
+    return `${bankName} · ${accountNumber}`;
+  }
+
+  return bankName ?? accountNumber ?? "-";
 }
 
 function formatConsoleDate(value: string) {

@@ -9,7 +9,6 @@ import {
   formatPublicTimeLabel,
 } from "@/features/reservations/shared";
 import { createPublicReservationAction } from "@/app/(public)/reservations/apply/_actions/create-public-reservation";
-import { ReservationFlowIndicator } from "./ReservationFlowIndicator";
 import { ReservationConsentSection } from "./ReservationConsentSection";
 import {
   reservationDisabledButtonClassName,
@@ -80,46 +79,57 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
   return (
     <main className="flex min-h-screen flex-1">
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
-        <ReservationFlowIndicator
-          steps={[
-            { label: "날짜", status: "complete" },
-            { label: "지점", status: "complete" },
-            { label: "신청서", status: "current" },
-          ]}
-        />
+        <header className="mb-5">
+          <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+            Application
+          </p>
+          <h1 className="mt-3 text-[28px] font-black leading-tight text-brand-white">
+            {party.branchName} 파티 신청서
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            {formatPublicDateLabel(party.startAt)} ·{" "}
+            {formatPublicTimeLabel(party.startAt, party.endAt)}
+          </p>
+        </header>
 
         <section className="rounded-[26px] border border-line bg-surface px-4 py-4">
           <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-            예약 정보
+            파티 정보
           </p>
           <div className="mt-3 space-y-3 text-sm">
             <div>
-              <p className="text-muted">선택 날짜</p>
+              <p className="text-muted">파티 날짜</p>
               <p className="mt-1 text-brand-white">
                 {formatPublicDateLabel(party.startAt)}
               </p>
             </div>
             <div>
-              <p className="text-muted">선택 지점</p>
+              <p className="text-muted">지점</p>
               <p className="mt-1 text-brand-white">{party.branchName}</p>
             </div>
             <div>
-              <p className="text-muted">파티</p>
+              <p className="text-muted">행사명</p>
               <p className="mt-1 text-brand-white">{party.title}</p>
             </div>
             <div>
-              <p className="text-muted">파티시간</p>
+              <p className="text-muted">진행 시간</p>
               <p className="mt-1 text-brand-white">
                 {formatPublicTimeLabel(party.startAt, party.endAt)}
               </p>
             </div>
+            {party.branchAddress ? (
+              <div>
+                <p className="text-muted">주소</p>
+                <p className="mt-1 text-brand-white">{party.branchAddress}</p>
+              </div>
+            ) : null}
           </div>
           <div className="mt-4 flex justify-end border-t border-line pt-4">
             <Link
               href="/"
               className="text-xs font-medium tracking-[0.08em] text-muted transition hover:text-brand-white"
             >
-              날짜 선택으로 돌아가기
+              파티 소개로 돌아가기
             </Link>
           </div>
         </section>

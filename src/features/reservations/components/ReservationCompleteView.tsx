@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
 import type { PublicReservationCompleteData } from "@/features/reservations/shared";
 import {
   formatPublicDateLabel,
@@ -42,10 +43,10 @@ export function ReservationCompleteView({
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-4 py-8 text-center sm:px-6 sm:py-10">
         <header className="mb-4 flex flex-col items-center gap-3">
           <Image
-            src="/jimoon_logo.png"
-            alt="Jimoon"
-            width={760}
-            height={1040}
+            src={BRAND_LOGO_SRC}
+            alt={BRAND_LOGO_ALT}
+            width={427}
+            height={584}
             priority
             className="h-auto w-14 object-contain sm:w-16"
           />
@@ -85,24 +86,24 @@ export function ReservationCompleteView({
 
         <section className="mt-8 w-full rounded-[26px] border border-line bg-surface px-4 py-4 text-left">
           <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-            예약 정보
+            신청 정보
           </p>
           <div className="mt-3 space-y-3 text-sm text-brand-white">
             <DetailRow label="예약코드" value={reservation.reservationCode} />
             <DetailRow label="이름" value={reservation.reserverName} />
             <DetailRow
-              label="선택 날짜"
+              label="파티 날짜"
               value={formatPublicDateLabel(reservation.partyStartAt)}
             />
             <DetailRow label="파티" value={reservation.partyTitle} />
             <DetailRow
-              label="파티시간"
+              label="진행 시간"
               value={formatPublicTimeLabel(
                 reservation.partyStartAt,
                 reservation.partyEndAt,
               )}
             />
-            <DetailRow label="매장" value={reservation.branchName} />
+            <DetailRow label="지점" value={reservation.branchName} />
             <div className="flex items-start justify-between gap-4">
               <span className="text-muted">주소</span>
               {reservation.branchAddress ? (
@@ -173,7 +174,7 @@ export function ReservationCompleteView({
             style={reservationPrimaryButtonStyle}
             className={reservationPrimaryButtonClassName}
           >
-            처음으로 돌아가기
+            파티 소개로 돌아가기
           </Link>
         </div>
       </section>
