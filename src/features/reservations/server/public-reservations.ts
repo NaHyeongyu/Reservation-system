@@ -304,7 +304,7 @@ function parseBirthDateInput(value: string) {
   const year = Number(digits.slice(0, 4));
   const month = Number(digits.slice(4, 6));
   const day = Number(digits.slice(6, 8));
-  const date = new Date(`${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}T00:00:00+09:00`);
+  const date = new Date(Date.UTC(year, month - 1, day));
 
   if (
     Number.isNaN(date.getTime()) ||
