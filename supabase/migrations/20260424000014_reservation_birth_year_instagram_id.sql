@@ -18,20 +18,6 @@ begin
 end
 $$;
 
-drop function if exists public.create_public_reservation_atomic(
-  uuid,
-  text,
-  text,
-  text,
-  date,
-  text,
-  text,
-  text[],
-  boolean,
-  boolean,
-  public.reservation_source
-);
-
 create or replace function public.create_public_reservation_atomic(
   p_party_id uuid,
   p_name text,
