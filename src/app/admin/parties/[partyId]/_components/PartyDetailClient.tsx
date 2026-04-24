@@ -146,7 +146,6 @@ export function PartyDetailClient({
     () => new Map(filteredWaitlist.map((item, index) => [item.id, index + 1])),
     [filteredWaitlist],
   );
-
   const applicantCount = applicants.length;
   const participantCount = participants.length;
   const waitlistCount = waitlist.length;
@@ -570,12 +569,6 @@ function ReservationColumn({
                 : false) || pendingReservationId !== null;
 
             const cancelDisabled = pendingReservationId !== null;
-            const hasSecondaryDetails =
-              Boolean(row.applicant_birth_date) ||
-              Boolean(row.applicant_instagram_id) ||
-              Boolean(row.bank_name) ||
-              Boolean(row.account_number) ||
-              row.referral_sources.length > 0;
             const isSelectable = Boolean(onSelectReservation);
             const isSelected = selectedReservationId === row.id;
 
@@ -601,55 +594,37 @@ function ReservationColumn({
                     : undefined
                 }
                 className={[
-                  "rounded-[18px] border bg-[#0f1822] px-3 py-3",
+                  "rounded-[16px] border bg-[#0f1822] px-3 py-2.5",
                   isSelectable ? "cursor-pointer transition focus:outline-none" : "",
                   isSelected
                     ? "border-[#3f7aa3] bg-[#122130] shadow-[0_0_0_1px_rgba(122,208,255,0.18)]"
                     : "border-[#18222d]",
                 ].join(" ")}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {showStatus ? <StatusBadge status={row.status} /> : null}
-                      {waitlistPriorityMap?.has(row.id) ? (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-[#2b5878] bg-[#0d1c27] px-1.5 text-[10px] font-semibold text-[#d9f1ff]">
-                          {waitlistPriorityMap.get(row.id)}
-                        </span>
-                      ) : null}
-                      <GenderBadge gender={row.applicant_gender} />
-                      <p className="truncate text-sm font-semibold text-white">
-                        {row.reserver_name}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-[11px] text-[#7f94a7]">
-                      {row.reservation_code}
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {showStatus ? <StatusBadge status={row.status} /> : null}
+                    {waitlistPriorityMap?.has(row.id) ? (
+                      <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-[#2b5878] bg-[#0d1c27] px-1.5 text-[10px] font-semibold text-[#d9f1ff]">
+                        {waitlistPriorityMap.get(row.id)}
+                      </span>
+                    ) : null}
+                    <GenderBadge gender={row.applicant_gender} />
+                    <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-white">
+                      {row.reserver_name}
                     </p>
+                    <span className="shrink-0 text-xs text-[#9db0bf]">
+                      {formatBirthYear(row.applicant_birth_date)}
+                    </span>
                   </div>
-                  <p className="shrink-0 text-[11px] text-[#7f94a7]">
-                    {formatConsoleDateTime(row.submitted_at)}
-                  </p>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5 text-[#8ea1b2]">
+                    <span>{row.reserver_phone || "전화번호 없음"}</span>
+                    <span>{formatConsoleDateTime(row.submitted_at)}</span>
+                  </div>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-[#9db0bf]">
-                  <MetaPill
-                    tone={row.reserver_phone ? "default" : "danger"}
-                    label={row.reserver_phone || "전화번호 없음"}
-                  />
-                  <MetaPill label={formatGenderLabel(row.applicant_gender)} />
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  {canConfirm && remainingSeats ? (
-                    <div className="mr-1 flex flex-wrap items-center gap-1">
-                      {genderFilter !== "female" ? (
-                        <SeatPill label="남은 남" value={remainingSeats.male} />
-                      ) : null}
-                      {genderFilter !== "male" ? (
-                        <SeatPill label="남은 여" value={remainingSeats.female} />
-                      ) : null}
-                    </div>
-                  ) : null}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {canConfirm && onConfirm ? (
                     <button
                       type="button"
@@ -718,36 +693,6 @@ function ReservationColumn({
                     {pendingReservationId === row.id ? "처리 중..." : "삭제"}
                   </button>
                 </div>
-
-                {hasSecondaryDetails ? (
-                  <div className="mt-3 grid gap-2 border-t border-[#17212b] pt-3 sm:grid-cols-2">
-                    {row.applicant_birth_date ? (
-                      <DisclosureField
-                        label="생년"
-                        value={formatBirthYear(row.applicant_birth_date)}
-                      />
-                    ) : null}
-                    {row.applicant_instagram_id ? (
-                      <DisclosureLinkField
-                        label="인스타그램 주소"
-                        value={formatInstagramAddress(row.applicant_instagram_id)}
-                        href={formatInstagramUrl(row.applicant_instagram_id)}
-                      />
-                    ) : null}
-                    {row.bank_name || row.account_number ? (
-                      <DisclosureField
-                        label="입금정보"
-                        value={formatBankAccount(row.bank_name, row.account_number)}
-                      />
-                    ) : null}
-                    {row.referral_sources.length > 0 ? (
-                      <DisclosureField
-                        label="유입경로"
-                        value={formatReferralSources(row.referral_sources)}
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
               </article>
             );
           })
@@ -1024,26 +969,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MetaPill({
-  label,
-  tone = "default",
-}: {
-  label: string;
-  tone?: "default" | "danger";
-}) {
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] ${
-        tone === "danger"
-          ? "border-[#6b2a38] bg-[#180d12] text-[#ffd7de]"
-          : "border-[#22303d] bg-[#0b141d] text-[#9db0bf]"
-      }`}
-    >
-      {label}
-    </span>
-  );
-}
-
 function DisclosureField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[14px] border border-[#17212b] bg-[#0b141d] px-3 py-2.5">
@@ -1155,14 +1080,6 @@ function GenderBadge({
   );
 }
 
-function SeatPill({ label, value }: { label: string; value: number }) {
-  return (
-    <span className="inline-flex rounded-full border border-[#22303d] bg-[#0b141d] px-2 py-0.5 font-mono text-[9px] tracking-[0.14em] text-[#9db0bf]">
-      {label} {value}
-    </span>
-  );
-}
-
 function isConfirmDisabled(
   gender: ReservationItem["applicant_gender"],
   remainingSeats: { male: number; female: number },
@@ -1213,18 +1130,6 @@ function normalizeInstagramHandle(value: string | null) {
   const handle = value?.trim().replace(/^@+/, "");
 
   return handle && handle.length > 0 ? handle : null;
-}
-
-function formatGenderLabel(value: ReservationItem["applicant_gender"]) {
-  if (value === "male") {
-    return "남";
-  }
-
-  if (value === "female") {
-    return "여";
-  }
-
-  return "-";
 }
 
 function formatReferralSources(values: string[]) {
