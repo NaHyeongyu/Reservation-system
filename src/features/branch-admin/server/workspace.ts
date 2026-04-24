@@ -129,6 +129,7 @@ export type BranchDashboardQueueItem = {
   reserver_phone: string;
   applicant_gender: "male" | "female" | null;
   applicant_age_band: string;
+  applicant_instagram_id: string | null;
   submitted_at: string;
   party_id: string | null;
   party_title: string | null;
@@ -202,6 +203,7 @@ type DashboardReservationRow = {
   submitted_at: string;
   applicant_gender: "male" | "female" | null;
   applicant_birth_date: string | null;
+  applicant_instagram_id: string | null;
   referral_sources: string[];
   party_id: string | null;
   party_title: string | null;
@@ -248,7 +250,7 @@ export async function getBranchDashboardSnapshot(
     supabaseAdmin
       .from("reservations")
       .select(
-        "id, reservation_code, reserver_name, reserver_phone, status, submitted_at, applicant_gender, applicant_birth_date, referral_sources, party_id, party:parties!reservations_party_branch_fk(title, start_at)",
+        "id, reservation_code, reserver_name, reserver_phone, status, submitted_at, applicant_gender, applicant_birth_date, applicant_instagram_id, referral_sources, party_id, party:parties!reservations_party_branch_fk(title, start_at)",
       )
       .eq("branch_id", branchId)
       .order("submitted_at", { ascending: true }),
@@ -1137,6 +1139,7 @@ function toDashboardReservationRow(value: unknown): DashboardReservationRow | nu
     submitted_at?: unknown;
     applicant_gender?: unknown;
     applicant_birth_date?: unknown;
+    applicant_instagram_id?: unknown;
     referral_sources?: unknown;
     party?: unknown;
   };
@@ -1166,6 +1169,10 @@ function toDashboardReservationRow(value: unknown): DashboardReservationRow | nu
         : null,
     applicant_birth_date:
       typeof row.applicant_birth_date === "string" ? row.applicant_birth_date : null,
+    applicant_instagram_id:
+      typeof row.applicant_instagram_id === "string"
+        ? row.applicant_instagram_id
+        : null,
     referral_sources: Array.isArray(row.referral_sources)
       ? row.referral_sources.filter(
           (item: unknown): item is string => typeof item === "string" && item.trim().length > 0,
@@ -1188,6 +1195,7 @@ function toDashboardQueueItem(row: DashboardReservationRow): BranchDashboardQueu
     reserver_phone: row.reserver_phone,
     applicant_gender: row.applicant_gender,
     applicant_age_band: getAgeBandLabel(row.applicant_birth_date),
+    applicant_instagram_id: row.applicant_instagram_id,
     submitted_at: row.submitted_at,
     party_id: row.party_id,
     party_title: row.party_title,
@@ -1494,8 +1502,8 @@ function getKstHour(value: string) {
   );
 }
 
-function getAgeBandLabel(birthDate: string | null) {
-  const age = getKoreanAge(birthDate);
+function getAgeBandLabel(birthYearValue: string | null) {
+  const age = getKoreanAge(birthYearValue);
 
   if (age === null) {
     return "-";
@@ -1516,14 +1524,20 @@ function getAgeBandLabel(birthDate: string | null) {
   return "35+";
 }
 
-function getKoreanAge(birthDate: string | null) {
-  if (!birthDate) {
+function getKoreanAge(birthYearValue: string | null) {
+  if (!birthYearValue) {
     return null;
   }
 
   const todayKey = getKstDateKey(new Date());
   const [todayYear, todayMonth, todayDay] = todayKey.split("-").map(Number);
-  const [birthYear, birthMonth, birthDay] = birthDate.split("-").map(Number);
+  const normalizedValue = birthYearValue.trim();
+
+  if (/^\d{4}$/.test(normalizedValue)) {
+    return todayYear - Number(normalizedValue);
+  }
+
+  const [birthYear, birthMonth, birthDay] = normalizedValue.split("-").map(Number);
 
   if (!birthYear || !birthMonth || !birthDay) {
     return null;

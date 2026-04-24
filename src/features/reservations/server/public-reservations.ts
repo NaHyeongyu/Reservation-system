@@ -171,7 +171,7 @@ export async function createPublicReservation(
   const normalizedName = input.name.trim();
   const instagramId = normalizeInstagramId(input.instagramId);
   const normalizedPhone = normalizePhoneNumber(input.phoneNumber);
-  const birthDate = parseBirthYearInput(input.birthYear);
+  const birthYear = parseBirthYearInput(input.birthYear);
   const bankName = input.bankName.trim();
   const accountNumber = input.accountNumber.trim();
 
@@ -187,7 +187,7 @@ export async function createPublicReservation(
     return { ok: false, message: "전화번호 형식을 확인하세요." };
   }
 
-  if (!birthDate) {
+  if (!birthYear) {
     return { ok: false, message: "생년 4자리를 확인하세요." };
   }
 
@@ -202,7 +202,7 @@ export async function createPublicReservation(
       p_name: normalizedName,
       p_phone: normalizedPhone,
       p_gender: input.gender,
-      p_birth_date: birthDate,
+      p_birth_date: birthYear,
       p_instagram_id: instagramId,
       p_bank_name: bankName,
       p_account_number: accountNumber,
@@ -325,7 +325,7 @@ function parseBirthYearInput(value: string) {
     return null;
   }
 
-  return `${digits}-01-01`;
+  return digits;
 }
 
 function isMissingPublicReservationColumnError(message: string | undefined) {
@@ -387,6 +387,10 @@ function mapCreatePublicReservationError(message: string | undefined) {
 
   if (message.includes("INVALID_INSTAGRAM_ID")) {
     return "인스타그램 ID 형식을 확인하세요.";
+  }
+
+  if (message.includes("INVALID_BIRTH_YEAR")) {
+    return "생년 4자리를 확인하세요.";
   }
 
   if (

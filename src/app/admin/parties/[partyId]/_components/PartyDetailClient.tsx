@@ -729,8 +729,8 @@ function ReservationColumn({
                     ) : null}
                     {row.applicant_instagram_id ? (
                       <DisclosureLinkField
-                        label="인스타그램"
-                        value={formatInstagramId(row.applicant_instagram_id)}
+                        label="인스타그램 주소"
+                        value={formatInstagramAddress(row.applicant_instagram_id)}
                         href={formatInstagramUrl(row.applicant_instagram_id)}
                       />
                     ) : null}
@@ -833,12 +833,12 @@ function ReservationDetailDialog({
               />
               {formatInstagramUrl(reservation.applicant_instagram_id) ? (
                 <DisclosureLinkField
-                  label="인스타그램"
-                  value={formatInstagramId(reservation.applicant_instagram_id)}
+                  label="인스타그램 주소"
+                  value={formatInstagramAddress(reservation.applicant_instagram_id)}
                   href={formatInstagramUrl(reservation.applicant_instagram_id)}
                 />
               ) : (
-                <DisclosureField label="인스타그램" value="-" />
+                <DisclosureField label="인스타그램 주소" value="-" />
               )}
               <DisclosureField
                 label="입금정보"
@@ -1197,14 +1197,10 @@ function formatBirthYear(value: string | null) {
   return year ? `${year}년` : "-";
 }
 
-function formatInstagramId(value: string | null) {
+function formatInstagramAddress(value: string | null) {
   const handle = normalizeInstagramHandle(value);
 
-  if (!handle) {
-    return "-";
-  }
-
-  return `@${handle}`;
+  return handle ? `instagram.com/${handle}` : "-";
 }
 
 function formatInstagramUrl(value: string | null) {

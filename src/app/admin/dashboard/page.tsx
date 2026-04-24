@@ -382,6 +382,18 @@ function QueuePanel({
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-[#8ea1b2]">{row.reserver_phone}</p>
+                        {formatInstagramUrl(row.applicant_instagram_id) ? (
+                          <a
+                            href={formatInstagramUrl(row.applicant_instagram_id) ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex max-w-full text-sm text-[#9fd7ff] underline decoration-[#2f5c82] underline-offset-4 transition hover:text-white"
+                          >
+                            <span className="truncate">
+                              {formatInstagramAddress(row.applicant_instagram_id)}
+                            </span>
+                          </a>
+                        ) : null}
                       </div>
                       <p className="text-xs text-[#7f94a7] sm:text-right">
                         {formatConsoleDateTime(row.submitted_at)}
@@ -464,6 +476,24 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm font-semibold text-white">{value}</p>
     </div>
   );
+}
+
+function formatInstagramAddress(value: string | null) {
+  const handle = normalizeInstagramHandle(value);
+
+  return handle ? `instagram.com/${handle}` : "-";
+}
+
+function formatInstagramUrl(value: string | null) {
+  const handle = normalizeInstagramHandle(value);
+
+  return handle ? `https://www.instagram.com/${encodeURIComponent(handle)}` : null;
+}
+
+function normalizeInstagramHandle(value: string | null) {
+  const handle = value?.trim().replace(/^@+/, "");
+
+  return handle && handle.length > 0 ? handle : null;
 }
 
 function GenderBadge({ gender }: { gender: BranchDashboardQueueItem["applicant_gender"] }) {
