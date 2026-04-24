@@ -4,21 +4,58 @@ import { useState } from "react";
 
 type ConsentKey = "partyTerms" | "privacy";
 
-const consentItems = [
+type ConsentSection = {
+  title?: string;
+  items: string[];
+};
+
+const consentItems: {
+  key: ConsentKey;
+  label: string;
+  sections: ConsentSection[];
+}[] = [
   {
     key: "partyTerms" as const,
     label: "파티 이용 규정 동의",
-    content: [
-      "본 문구는 임시 약관 내용입니다. 예약 신청 후 파티 이용 전반에 적용되는 기본 안내가 이 영역에 들어갑니다.",
-      "입장 시간, 이용 가능 범위, 주의 사항, 취소 및 변경 규정 등 세부 운영 정책은 추후 확정된 내용으로 교체될 예정입니다.",
+    sections: [
+      {
+        items: [
+          "파티일 기준 8일 전까지 취소 시: 전액 환불",
+          "파티일 기준 7일 전 - 당일 취소 시: 환불 및 변경 불가 (노쇼 포함)",
+          "입장 시 신분증을 확인하니 신분증 필수 지참해주시기 바랍니다. (미성년자 이용방지)",
+          "파티 진행 중 일부 시간 현장 촬영이 있을 수 있습니다. 얼굴은 블러 처리가 적용되며, 해당 이미지 및 영상은 마케팅 목적으로 활용될 수 있습니다.",
+          "행사 중 발생한 사고의 민형사상 책임은 본인에게 있으며 물품 손괴 시 원가배상을 원칙으로 합니다.",
+          "만취자, 과도한 스킨십 등 타인에게 피해 주는 행위를 하시면 즉시 퇴장 조치됩니다.",
+          "파티 신청 시 위 내용에 동의한 것으로 간주되며, 동의하지 않으실 경우 참여가 제한될 수 있습니다.",
+        ],
+      },
     ],
   },
   {
     key: "privacy" as const,
-    label: "개인 정보 수집 및 이용 동의",
-    content: [
-      "본 문구는 임시 개인정보 동의 내용입니다. 예약 처리와 본인 확인을 위해 이름, 연락처, 생년월일, 계좌정보 등을 수집할 수 있습니다.",
-      "수집된 정보의 보관 기간, 이용 목적, 파기 절차에 대한 상세 정책은 실제 운영 기준에 맞춰 추후 반영될 예정입니다.",
+    label: "개인정보 수집 및 이용 동의",
+    sections: [
+      {
+        title: "수집된 개인정보의 이용 목적",
+        items: [
+          "파티 신청 및 서비스 관련 안내 문자(SMS) 발송",
+          "본인 확인 및 파티 안내",
+          "입금 확인 및 입장 확인",
+          "파티 미 참여에 따른 계좌이체 환불",
+          "서비스 이용 및 상담, 부정이용 확인 방지",
+        ],
+      },
+      {
+        title: "수집하는 개인정보의 항목",
+        items: [
+          "예약자 이름, 생년, 휴대전화 번호, 인스타그램 ID",
+          "은행명, 계좌번호",
+        ],
+      },
+      {
+        title: "개인정보의 보유 및 이용기간",
+        items: ["서비스 제공 완료 후 즉시 파기"],
+      },
     ],
   },
 ];
@@ -145,9 +182,23 @@ export function ReservationConsentSection({
                           id={`${item.key}-content`}
                           className="mt-1 rounded-[14px] border border-line bg-brand-black/40 px-4 py-3 text-xs leading-6 text-muted"
                         >
-                          <div className="space-y-2">
-                            {item.content.map((paragraph) => (
-                              <p key={paragraph}>{paragraph}</p>
+                          <div className="space-y-3">
+                            {item.sections.map((section) => (
+                              <div key={section.title ?? section.items.join("/")}>
+                                {section.title ? (
+                                  <p className="mb-1.5 font-medium text-brand-white">
+                                    {section.title}
+                                  </p>
+                                ) : null}
+                                <ul className="space-y-1.5">
+                                  {section.items.map((content) => (
+                                    <li key={content} className="flex gap-2">
+                                      <span aria-hidden="true">-</span>
+                                      <span>{content}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             ))}
                           </div>
                         </div>

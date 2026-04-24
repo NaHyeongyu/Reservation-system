@@ -27,6 +27,7 @@ type ReservationItem = {
   reserver_phone: string;
   applicant_gender: "male" | "female" | null;
   applicant_birth_date: string | null;
+  applicant_instagram_id: string | null;
   bank_name: string | null;
   account_number: string | null;
   referral_sources: string[];
@@ -571,6 +572,7 @@ function ReservationColumn({
             const cancelDisabled = pendingReservationId !== null;
             const hasSecondaryDetails =
               Boolean(row.applicant_birth_date) ||
+              Boolean(row.applicant_instagram_id) ||
               Boolean(row.bank_name) ||
               Boolean(row.account_number) ||
               row.referral_sources.length > 0;
@@ -721,8 +723,14 @@ function ReservationColumn({
                   <div className="mt-3 grid gap-2 border-t border-[#17212b] pt-3 sm:grid-cols-2">
                     {row.applicant_birth_date ? (
                       <DisclosureField
-                        label="생년월일"
-                        value={formatBirthDate(row.applicant_birth_date)}
+                        label="생년"
+                        value={formatBirthYear(row.applicant_birth_date)}
+                      />
+                    ) : null}
+                    {row.applicant_instagram_id ? (
+                      <DisclosureField
+                        label="인스타그램"
+                        value={formatInstagramId(row.applicant_instagram_id)}
                       />
                     ) : null}
                     {row.bank_name || row.account_number ? (
@@ -819,8 +827,12 @@ function ReservationDetailDialog({
                 value={reservation.reserver_phone || "-"}
               />
               <DisclosureField
-                label="생년월일"
-                value={formatBirthDate(reservation.applicant_birth_date)}
+                label="생년"
+                value={formatBirthYear(reservation.applicant_birth_date)}
+              />
+              <DisclosureField
+                label="인스타그램"
+                value={formatInstagramId(reservation.applicant_instagram_id)}
               />
               <DisclosureField
                 label="입금정보"
@@ -1138,17 +1150,22 @@ function formatDateInput(value: string) {
   }).format(new Date(value));
 }
 
-function formatBirthDate(value: string | null) {
+function formatBirthYear(value: string | null) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(`${value}T00:00:00+09:00`));
+  const [year] = value.split("-");
+
+  return year ? `${year}년` : "-";
+}
+
+function formatInstagramId(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return `@${value.replace(/^@+/, "")}`;
 }
 
 function formatGenderLabel(value: ReservationItem["applicant_gender"]) {

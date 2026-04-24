@@ -108,6 +108,9 @@ branches 1 --- N parties 1 --- N reservations 1 --- N participants
 - `source`: `web | app | admin | import`
 - `status`: `pending | confirmed | waitlisted | cancelled | rejected | completed | no_show`
 - `reserver_name`, `reserver_phone`, `reserver_email`
+- `applicant_gender`, `applicant_birth_date`, `applicant_instagram_id`
+- `bank_name`, `account_number`, `referral_sources`
+- `party_terms_agreed`, `privacy_agreed`, `party_terms_agreed_at`, `privacy_agreed_at`
 - `participant_count`
 - `request_note`, `admin_note`
 - `submitted_at`, `confirmed_at`, `cancelled_at`, `rejected_at`, `completed_at`

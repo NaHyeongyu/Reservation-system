@@ -20,15 +20,6 @@ type ReservationApplyFormProps = {
   party: PublicPartyOption;
 };
 
-const referralSources = [
-  "인스타그램",
-  "네이버 검색",
-  "지인 추천",
-  "카카오톡",
-  "블로그",
-  "기타",
-];
-
 const initialState = {
   errorMessage: null,
 };
@@ -39,23 +30,24 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
     initialState,
   );
   const [gender, setGender] = useState<"male" | "female" | null>(null);
-  const [birthDate, setBirthDate] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [name, setName] = useState("");
+  const [instagramId, setInstagramId] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [referralSourceValues, setReferralSourceValues] = useState<string[]>([]);
   const [partyTermsAgreed, setPartyTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const allAgreed = partyTermsAgreed && privacyAgreed;
-  const isBirthDateValid = /^\d{8}$/.test(birthDate);
+  const isBirthYearValid = /^\d{4}$/.test(birthYear);
   const isWaitlistExpected =
     (gender === "male" && party.maleApplied >= party.maleCapacity) ||
     (gender === "female" && party.femaleApplied >= party.femaleCapacity);
   const hasRequiredFields =
     gender !== null &&
-    isBirthDateValid &&
+    isBirthYearValid &&
     name.trim().length > 0 &&
+    instagramId.trim().length > 0 &&
     phoneNumber.trim().length > 0 &&
     bankName.trim().length > 0 &&
     accountNumber.trim().length > 0;
@@ -64,16 +56,6 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
   function handleToggleAllConsents(checked: boolean) {
     setPartyTermsAgreed(checked);
     setPrivacyAgreed(checked);
-  }
-
-  function handleToggleReferralSource(source: string, checked: boolean) {
-    setReferralSourceValues((current) => {
-      if (checked) {
-        return current.includes(source) ? current : [...current, source];
-      }
-
-      return current.filter((item) => item !== source);
-    });
   }
 
   return (
@@ -195,21 +177,21 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
 
               <label className="block">
                 <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                  <span>생년월일</span>
+                  <span>생년</span>
                   <span className="text-brand-red">*</span>
                 </span>
                 <input
-                  id="birthDate"
-                  name="birthDate"
+                  id="birthYear"
+                  name="birthYear"
                   type="text"
                   required
                   inputMode="numeric"
-                  maxLength={8}
-                  minLength={8}
-                  pattern="[0-9]{8}"
-                  placeholder="20010809"
-                  value={birthDate}
-                  onChange={(event) => setBirthDate(event.target.value)}
+                  maxLength={4}
+                  minLength={4}
+                  pattern="[0-9]{4}"
+                  placeholder="2001"
+                  value={birthYear}
+                  onChange={(event) => setBirthYear(event.target.value)}
                   className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
                 />
               </label>
@@ -219,6 +201,16 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                   <span>이름</span>
                   <span className="text-brand-red">*</span>
                 </span>
+                <FieldDescription>
+                  <p>
+                    신청자, 입금자, 신분증 이름이 미일치하면 입금 확인 및 입장이
+                    어렵습니다.
+                  </p>
+                  <p>
+                    신청서는 1인당 1개씩 필수 작성 부탁드립니다. 일행과 동반 시
+                    각각 작성해주세요.
+                  </p>
+                </FieldDescription>
                 <input
                   id="name"
                   name="name"
@@ -233,9 +225,33 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
 
               <label className="block">
                 <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span>인스타그램 ID</span>
+                  <span className="text-brand-red">*</span>
+                </span>
+                <input
+                  id="instagramId"
+                  name="instagramId"
+                  type="text"
+                  required
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  maxLength={31}
+                  pattern="@?[A-Za-z0-9._]{1,30}"
+                  placeholder="@party_account"
+                  value={instagramId}
+                  onChange={(event) => setInstagramId(event.target.value)}
+                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                />
+              </label>
+
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
                   <span>전화번호</span>
                   <span className="text-brand-red">*</span>
                 </span>
+                <FieldDescription>
+                  추후 본인 확인 및 파티 안내 용도로 사용됩니다.
+                </FieldDescription>
                 <input
                   id="phoneNumber"
                   name="phoneNumber"
@@ -251,9 +267,12 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
               <div className="grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
                 <label className="block">
                   <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                    <span>은행</span>
+                    <span>환불 은행</span>
                     <span className="text-brand-red">*</span>
                   </span>
+                  <FieldDescription>
+                    환불 업무에 사용됩니다.
+                  </FieldDescription>
                   <input
                     id="bankName"
                     name="bankName"
@@ -268,9 +287,12 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
 
                 <label className="block">
                   <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
-                    <span>계좌번호</span>
+                    <span>환불 계좌번호</span>
                     <span className="text-brand-red">*</span>
                   </span>
+                  <FieldDescription>
+                    환불 업무에 사용됩니다.
+                  </FieldDescription>
                   <input
                     id="accountNumber"
                     name="accountNumber"
@@ -282,32 +304,6 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                     className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
                   />
                 </label>
-              </div>
-
-              <div className="pt-2">
-                <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-                  유입경로
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {referralSources.map((source) => (
-                  <label key={source} className="block">
-                    <input
-                      type="checkbox"
-                      name="referralSources"
-                      value={source}
-                      checked={referralSourceValues.includes(source)}
-                      onChange={(event) =>
-                        handleToggleReferralSource(source, event.target.checked)
-                      }
-                      className="peer sr-only"
-                    />
-                    <span className="inline-flex h-9 items-center rounded-full border border-line px-4 text-sm text-muted transition peer-checked:border-brand-orange peer-checked:text-brand-white">
-                      {source}
-                    </span>
-                  </label>
-                ))}
               </div>
             </div>
           </section>
@@ -339,6 +335,14 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
         </form>
       </section>
     </main>
+  );
+}
+
+function FieldDescription({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-2 space-y-1 border-l-2 border-brand-orange/70 pl-3 text-[11px] leading-5 text-brand-white/75">
+      {children}
+    </div>
   );
 }
 

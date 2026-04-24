@@ -56,6 +56,7 @@ export type PartyReservationItem = {
   reserver_phone: string;
   applicant_gender: "male" | "female" | null;
   applicant_birth_date: string | null;
+  applicant_instagram_id: string | null;
   bank_name: string | null;
   account_number: string | null;
   referral_sources: string[];
@@ -862,7 +863,7 @@ export async function listPartyReservations(branchId: string, partyId: string, l
   const { data, error } = await supabaseAdmin
     .from("reservations")
     .select(
-      "id, reservation_code, reserver_name, reserver_phone, applicant_gender, applicant_birth_date, bank_name, account_number, referral_sources, status, submitted_at",
+      "id, reservation_code, reserver_name, reserver_phone, applicant_gender, applicant_birth_date, applicant_instagram_id, bank_name, account_number, referral_sources, status, submitted_at",
     )
     .eq("branch_id", branchId)
     .eq("party_id", partyId)
@@ -883,6 +884,7 @@ export async function listPartyReservations(branchId: string, partyId: string, l
         ? item.applicant_gender
         : null,
     applicant_birth_date: item.applicant_birth_date ?? null,
+    applicant_instagram_id: item.applicant_instagram_id ?? null,
     bank_name: item.bank_name ?? null,
     account_number: item.account_number ?? null,
     referral_sources: Array.isArray(item.referral_sources)

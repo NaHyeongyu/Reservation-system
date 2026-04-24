@@ -14,14 +14,12 @@ export async function createPublicReservationAction(
 ): Promise<CreatePublicReservationActionState> {
   const partyId = getFormValue(formData, "partyId");
   const gender = getFormValue(formData, "gender");
-  const birthDate = getFormValue(formData, "birthDate");
+  const birthYear = getFormValue(formData, "birthYear");
   const name = getFormValue(formData, "name");
+  const instagramId = getFormValue(formData, "instagramId");
   const phoneNumber = getFormValue(formData, "phoneNumber");
   const bankName = getFormValue(formData, "bankName");
   const accountNumber = getFormValue(formData, "accountNumber");
-  const referralSources = formData
-    .getAll("referralSources")
-    .filter((value): value is string => typeof value === "string");
   const partyTermsAgreed = getFormValue(formData, "partyTermsAgreed") === "true";
   const privacyAgreed = getFormValue(formData, "privacyAgreed") === "true";
 
@@ -32,12 +30,12 @@ export async function createPublicReservationAction(
   const result = await createPublicReservation({
     partyId,
     gender,
-    birthDate,
+    birthYear,
     name,
+    instagramId,
     phoneNumber,
     bankName,
     accountNumber,
-    referralSources,
     partyTermsAgreed,
     privacyAgreed,
   });

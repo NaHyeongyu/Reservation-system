@@ -11,12 +11,12 @@ import type {
 type CreatePublicReservationInput = {
   partyId: string;
   gender: "male" | "female";
-  birthDate: string;
+  birthYear: string;
   name: string;
+  instagramId: string;
   phoneNumber: string;
   bankName: string;
   accountNumber: string;
-  referralSources: string[];
   partyTermsAgreed: boolean;
   privacyAgreed: boolean;
 };
@@ -62,6 +62,7 @@ type ReservationRow = {
   submitted_at: string;
   applicant_gender?: string | null;
   applicant_birth_date?: string | null;
+  applicant_instagram_id?: string | null;
   bank_name?: string | null;
   account_number?: string | null;
   referral_sources?: string[] | null;
@@ -168,14 +169,18 @@ export async function createPublicReservation(
   }
 
   const normalizedName = input.name.trim();
+  const instagramId = normalizeInstagramId(input.instagramId);
   const normalizedPhone = normalizePhoneNumber(input.phoneNumber);
-  const birthDate = parseBirthDateInput(input.birthDate);
+  const birthDate = parseBirthYearInput(input.birthYear);
   const bankName = input.bankName.trim();
   const accountNumber = input.accountNumber.trim();
-  const referralSources = dedupeReferralSources(input.referralSources);
 
   if (normalizedName.length === 0) {
     return { ok: false, message: "이름을 입력하세요." };
+  }
+
+  if (!instagramId) {
+    return { ok: false, message: "인스타그램 ID를 입력하세요." };
   }
 
   if (normalizedPhone.length < 10) {
@@ -183,7 +188,7 @@ export async function createPublicReservation(
   }
 
   if (!birthDate) {
-    return { ok: false, message: "생년월일 형식을 확인하세요." };
+    return { ok: false, message: "생년 4자리를 확인하세요." };
   }
 
   if (bankName.length === 0 || accountNumber.length === 0) {
@@ -198,9 +203,10 @@ export async function createPublicReservation(
       p_phone: normalizedPhone,
       p_gender: input.gender,
       p_birth_date: birthDate,
+      p_instagram_id: instagramId,
       p_bank_name: bankName,
       p_account_number: accountNumber,
-      p_referral_sources: referralSources,
+      p_referral_sources: [],
       p_party_terms_agreed: true,
       p_privacy_agreed: true,
       p_source: "web",
@@ -295,32 +301,31 @@ function normalizePhoneNumber(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function parseBirthDateInput(value: string) {
-  const digits = value.replace(/\D/g, "");
+function normalizeInstagramId(value: string) {
+  const normalized = value.trim().replace(/^@+/, "");
 
-  if (!/^\d{8}$/.test(digits)) {
+  if (!/^[A-Za-z0-9._]{1,30}$/.test(normalized)) {
     return null;
   }
 
-  const year = Number(digits.slice(0, 4));
-  const month = Number(digits.slice(4, 6));
-  const day = Number(digits.slice(6, 8));
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() + 1 !== month ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  return normalized;
 }
 
-function dedupeReferralSources(values: string[]) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+function parseBirthYearInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!/^\d{4}$/.test(digits)) {
+    return null;
+  }
+
+  const year = Number(digits);
+  const currentYear = new Date().getUTCFullYear();
+
+  if (year < 1900 || year > currentYear) {
+    return null;
+  }
+
+  return `${digits}-01-01`;
 }
 
 function isMissingPublicReservationColumnError(message: string | undefined) {
@@ -331,6 +336,7 @@ function isMissingPublicReservationColumnError(message: string | undefined) {
   return [
     "applicant_gender",
     "applicant_birth_date",
+    "applicant_instagram_id",
     "bank_name",
     "account_number",
     "referral_sources",
@@ -373,6 +379,14 @@ function mapCreatePublicReservationError(message: string | undefined) {
 
   if (message.includes("EMPTY_NAME")) {
     return "이름을 입력하세요.";
+  }
+
+  if (message.includes("EMPTY_INSTAGRAM_ID")) {
+    return "인스타그램 ID를 입력하세요.";
+  }
+
+  if (message.includes("INVALID_INSTAGRAM_ID")) {
+    return "인스타그램 ID 형식을 확인하세요.";
   }
 
   if (
