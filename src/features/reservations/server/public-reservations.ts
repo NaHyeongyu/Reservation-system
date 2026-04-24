@@ -262,6 +262,7 @@ export async function getPublicReservationCompleteData(reservationCode: string) 
     reservationCode: reservationRow.reservation_code,
     reservationStatus: normalizeReservationStatus(reservationRow.status),
     reserverName: reservationRow.reserver_name,
+    reserverPhone: reservationRow.reserver_phone,
     branchName: branch.name,
     branchAddress: branch.address,
     partyTitle: party.title,

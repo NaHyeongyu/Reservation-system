@@ -718,52 +718,26 @@ function ReservationColumn({
                 </div>
 
                 {hasSecondaryDetails ? (
-                  <details
-                    className="group mt-3 border-t border-[#17212b] pt-3"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold text-[#8ea1b2] [&::-webkit-details-marker]:hidden">
-                      <span>추가 정보</span>
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#22303d] bg-[#0b141d] text-[#9fdcff] transition group-open:rotate-180">
-                        <svg
-                          viewBox="0 0 16 16"
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M4.5 6.25L8 9.75L11.5 6.25"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    </summary>
-
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {row.applicant_birth_date ? (
-                        <DisclosureField
-                          label="생년월일"
-                          value={formatBirthDate(row.applicant_birth_date)}
-                        />
-                      ) : null}
-                      {row.bank_name || row.account_number ? (
-                        <DisclosureField
-                          label="입금정보"
-                          value={formatBankAccount(row.bank_name, row.account_number)}
-                        />
-                      ) : null}
-                      {row.referral_sources.length > 0 ? (
-                        <DisclosureField
-                          label="유입경로"
-                          value={formatReferralSources(row.referral_sources)}
-                        />
-                      ) : null}
-                    </div>
-                  </details>
+                  <div className="mt-3 grid gap-2 border-t border-[#17212b] pt-3 sm:grid-cols-2">
+                    {row.applicant_birth_date ? (
+                      <DisclosureField
+                        label="생년월일"
+                        value={formatBirthDate(row.applicant_birth_date)}
+                      />
+                    ) : null}
+                    {row.bank_name || row.account_number ? (
+                      <DisclosureField
+                        label="입금정보"
+                        value={formatBankAccount(row.bank_name, row.account_number)}
+                      />
+                    ) : null}
+                    {row.referral_sources.length > 0 ? (
+                      <DisclosureField
+                        label="유입경로"
+                        value={formatReferralSources(row.referral_sources)}
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
               </article>
             );

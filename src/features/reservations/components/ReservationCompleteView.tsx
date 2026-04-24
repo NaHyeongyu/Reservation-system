@@ -89,13 +89,12 @@ export function ReservationCompleteView({
             신청 정보
           </p>
           <div className="mt-3 space-y-3 text-sm text-brand-white">
-            <DetailRow label="예약코드" value={reservation.reservationCode} />
             <DetailRow label="이름" value={reservation.reserverName} />
+            <DetailRow label="전화번호" value={reservation.reserverPhone} />
             <DetailRow
               label="파티 날짜"
               value={formatPublicDateLabel(reservation.partyStartAt)}
             />
-            <DetailRow label="파티" value={reservation.partyTitle} />
             <DetailRow
               label="진행 시간"
               value={formatPublicTimeLabel(
@@ -103,7 +102,6 @@ export function ReservationCompleteView({
                 reservation.partyEndAt,
               )}
             />
-            <DetailRow label="지점" value={reservation.branchName} />
             <div className="flex items-start justify-between gap-4">
               <span className="text-muted">주소</span>
               {reservation.branchAddress ? (
@@ -172,7 +170,10 @@ export function ReservationCompleteView({
           <Link
             href="/"
             style={reservationPrimaryButtonStyle}
-            className={reservationPrimaryButtonClassName}
+            className={[
+              reservationPrimaryButtonClassName,
+              "bg-brand-red hover:bg-brand-red/90",
+            ].join(" ")}
           >
             파티 소개로 돌아가기
           </Link>

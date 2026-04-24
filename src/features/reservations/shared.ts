@@ -27,6 +27,7 @@ export type PublicReservationCompleteData = {
     | "completed"
     | "no_show";
   reserverName: string;
+  reserverPhone: string;
   branchName: string;
   branchAddress: string | null;
   partyTitle: string;
