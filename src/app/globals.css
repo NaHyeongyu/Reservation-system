@@ -62,9 +62,78 @@ button {
   animation: draw-reservation-check 1.2s ease-out forwards;
 }
 
+.featured-typing-line {
+  display: inline-block;
+  justify-self: center;
+  max-width: max-content;
+  overflow: hidden;
+  opacity: 0;
+  width: 0;
+  white-space: nowrap;
+  border-right: 0.08em solid transparent;
+}
+
+.featured-typing-line--lead {
+  animation:
+    featured-typewriter var(--typing-duration) steps(var(--typing-characters), end)
+      var(--typing-delay) forwards,
+    featured-caret-active var(--typing-duration) step-end var(--typing-delay)
+      forwards;
+}
+
+.featured-typing-line--final {
+  animation:
+    featured-typewriter var(--typing-duration) steps(var(--typing-characters), end)
+      var(--typing-delay) forwards,
+    featured-caret-blink 0.72s step-end var(--typing-delay) 4 forwards;
+}
+
 @keyframes draw-reservation-check {
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes featured-typewriter {
+  from {
+    opacity: 1;
+    width: 0;
+  }
+
+  to {
+    opacity: 1;
+    width: calc(var(--typing-characters) * 1em);
+  }
+}
+
+@keyframes featured-caret-active {
+  0%,
+  92% {
+    border-color: rgba(255, 255, 255, 0.72);
+  }
+
+  100% {
+    border-color: transparent;
+  }
+}
+
+@keyframes featured-caret-blink {
+  0%,
+  100% {
+    border-color: transparent;
+  }
+
+  50% {
+    border-color: rgba(255, 255, 255, 0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featured-typing-line {
+    animation: none;
+    opacity: 1;
+    width: auto;
+    border-right: 0;
   }
 }
 

@@ -84,7 +84,7 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
             Application
           </p>
           <h1 className="mt-3 text-[28px] font-black leading-tight text-brand-white">
-            {party.branchName} 파티 신청서
+            파티 신청서
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted">
             {formatPublicDateLabel(party.startAt)} ·{" "}
@@ -102,14 +102,6 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
               <p className="mt-1 text-brand-white">
                 {formatPublicDateLabel(party.startAt)}
               </p>
-            </div>
-            <div>
-              <p className="text-muted">지점</p>
-              <p className="mt-1 text-brand-white">{party.branchName}</p>
-            </div>
-            <div>
-              <p className="text-muted">행사명</p>
-              <p className="mt-1 text-brand-white">{party.title}</p>
             </div>
             <div>
               <p className="text-muted">진행 시간</p>
@@ -367,8 +359,11 @@ function SubmitButton({
       style={reservationPrimaryButtonStyle}
       className={
         isDisabled
-          ? reservationDisabledButtonClassName
-          : reservationPrimaryButtonClassName
+          ? [reservationDisabledButtonClassName, "bg-brand-red/25"].join(" ")
+          : [
+              reservationPrimaryButtonClassName,
+              "bg-brand-red hover:bg-brand-red/90",
+            ].join(" ")
       }
     >
       {pending ? "처리 중..." : label}
