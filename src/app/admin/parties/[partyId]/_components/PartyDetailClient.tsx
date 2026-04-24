@@ -728,9 +728,10 @@ function ReservationColumn({
                       />
                     ) : null}
                     {row.applicant_instagram_id ? (
-                      <DisclosureField
+                      <DisclosureLinkField
                         label="인스타그램"
                         value={formatInstagramId(row.applicant_instagram_id)}
+                        href={formatInstagramUrl(row.applicant_instagram_id)}
                       />
                     ) : null}
                     {row.bank_name || row.account_number ? (
@@ -830,10 +831,15 @@ function ReservationDetailDialog({
                 label="생년"
                 value={formatBirthYear(reservation.applicant_birth_date)}
               />
-              <DisclosureField
-                label="인스타그램"
-                value={formatInstagramId(reservation.applicant_instagram_id)}
-              />
+              {formatInstagramUrl(reservation.applicant_instagram_id) ? (
+                <DisclosureLinkField
+                  label="인스타그램"
+                  value={formatInstagramId(reservation.applicant_instagram_id)}
+                  href={formatInstagramUrl(reservation.applicant_instagram_id)}
+                />
+              ) : (
+                <DisclosureField label="인스타그램" value="-" />
+              )}
               <DisclosureField
                 label="입금정보"
                 value={formatBankAccount(reservation.bank_name, reservation.account_number)}
@@ -1049,6 +1055,37 @@ function DisclosureField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DisclosureLinkField({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href: string | null;
+}) {
+  if (!href) {
+    return <DisclosureField label={label} value={value} />;
+  }
+
+  return (
+    <div className="rounded-[14px] border border-[#17212b] bg-[#0b141d] px-3 py-2.5">
+      <p className="font-mono text-[9px] tracking-[0.16em] text-[#70879a] uppercase">
+        {label}
+      </p>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => event.stopPropagation()}
+        className="mt-1 inline-flex max-w-full items-center text-[13px] leading-5 text-[#9fd7ff] underline decoration-[#2f5c82] underline-offset-4 transition hover:text-white"
+      >
+        <span className="truncate">{value}</span>
+      </a>
+    </div>
+  );
+}
+
 function EmptyBlock({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-[18px] border border-dashed border-[#22303d] bg-[#0f1822] px-4 py-7 text-center text-sm text-[#8ea1b2]">
@@ -1161,11 +1198,25 @@ function formatBirthYear(value: string | null) {
 }
 
 function formatInstagramId(value: string | null) {
-  if (!value) {
+  const handle = normalizeInstagramHandle(value);
+
+  if (!handle) {
     return "-";
   }
 
-  return `@${value.replace(/^@+/, "")}`;
+  return `@${handle}`;
+}
+
+function formatInstagramUrl(value: string | null) {
+  const handle = normalizeInstagramHandle(value);
+
+  return handle ? `https://www.instagram.com/${encodeURIComponent(handle)}` : null;
+}
+
+function normalizeInstagramHandle(value: string | null) {
+  const handle = value?.trim().replace(/^@+/, "");
+
+  return handle && handle.length > 0 ? handle : null;
 }
 
 function formatGenderLabel(value: ReservationItem["applicant_gender"]) {
