@@ -97,120 +97,110 @@ export function ReservationConsentSection({
   }
 
   return (
-    <>
-      <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
-        <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-          동의
-        </p>
+    <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
+      <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+        동의
+      </p>
 
-        <div className="mt-3 rounded-[20px] border border-line bg-brand-black/60">
-          <div className="px-4 py-4">
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={allAgreed}
-                onChange={(event) => onToggleAll(event.target.checked)}
-                className="peer sr-only"
-              />
-              <span
-                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${
-                  allAgreed
-                    ? "border-brand-orange bg-brand-orange text-brand-white"
-                    : "border-line text-transparent"
-                }`}
-              >
-                ✓
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-brand-white">전체 동의</p>
-              </div>
-            </label>
-          </div>
-
-          <div className="px-4 pb-3">
-            <div className="ml-2 pl-4">
-              <div className="space-y-1">
-                {consentItems.map((item) => {
-                  const isAgreed = getAgreementState(item.key);
-                  const isOpen = openedConsent === item.key;
-
-                  return (
-                    <div key={item.key} className="py-1">
-                      <div className="flex items-center gap-3">
-                        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={isAgreed}
-                            onChange={(event) =>
-                              setAgreementState(item.key, event.target.checked)
-                            }
-                            className="peer sr-only"
-                          />
-                          <span
-                            className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition ${
-                              isAgreed
-                                ? "border-brand-orange bg-brand-orange text-brand-white"
-                                : "border-line text-transparent"
-                            }`}
-                          >
-                            ✓
-                          </span>
-                          <span className="flex min-w-0 items-center gap-1 text-sm text-brand-white">
-                            <span className="truncate">{item.label}</span>
-                            <span className="text-brand-red">*</span>
-                          </span>
-                        </label>
-
-                        <button
-                          type="button"
-                          onClick={() => handleToggleConsent(item.key)}
-                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs transition ${
-                            isOpen
-                              ? "border-brand-orange/50 text-brand-white"
-                              : "border-line text-muted hover:border-brand-orange/35 hover:text-brand-white"
-                          }`}
-                          aria-expanded={isOpen}
-                          aria-controls={`${item.key}-content`}
-                          aria-label={isOpen ? `${item.label} 닫기` : `${item.label} 보기`}
-                        >
-                          {isOpen ? "-" : "+"}
-                        </button>
-                      </div>
-
-                      {isOpen ? (
-                        <div
-                          id={`${item.key}-content`}
-                          className="mt-1 rounded-[14px] border border-line bg-brand-black/40 px-4 py-3 text-xs leading-6 text-muted"
-                        >
-                          <div className="space-y-3">
-                            {item.sections.map((section) => (
-                              <div key={section.title ?? section.items.join("/")}>
-                                {section.title ? (
-                                  <p className="mb-1.5 font-medium text-brand-white">
-                                    {section.title}
-                                  </p>
-                                ) : null}
-                                <ul className="space-y-1.5">
-                                  {section.items.map((content) => (
-                                    <li key={content} className="flex gap-2">
-                                      <span aria-hidden="true">-</span>
-                                      <span>{content}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+      <label className="mt-3 flex cursor-pointer items-center gap-3 py-1">
+        <input
+          type="checkbox"
+          checked={allAgreed}
+          onChange={(event) => onToggleAll(event.target.checked)}
+          className="peer sr-only"
+        />
+        <span
+          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${
+            allAgreed
+              ? "border-brand-orange bg-brand-orange text-brand-white"
+              : "border-line text-transparent"
+          }`}
+        >
+          ✓
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-brand-white">전체 동의</p>
         </div>
-      </section>
-    </>
+      </label>
+
+      <div className="mt-3 space-y-1 border-t border-line pt-3">
+        {consentItems.map((item) => {
+          const isAgreed = getAgreementState(item.key);
+          const isOpen = openedConsent === item.key;
+
+          return (
+            <div key={item.key} className="py-1">
+              <div className="flex items-center gap-3">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={isAgreed}
+                    onChange={(event) =>
+                      setAgreementState(item.key, event.target.checked)
+                    }
+                    className="peer sr-only"
+                  />
+                  <span
+                    className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition ${
+                      isAgreed
+                        ? "border-brand-orange bg-brand-orange text-brand-white"
+                        : "border-line text-transparent"
+                    }`}
+                  >
+                    ✓
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1 text-sm text-brand-white">
+                    <span className="truncate">{item.label}</span>
+                    <span className="text-brand-red">*</span>
+                  </span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleConsent(item.key)}
+                  className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs transition ${
+                    isOpen
+                      ? "border-brand-orange/50 text-brand-white"
+                      : "border-line text-muted hover:border-brand-orange/35 hover:text-brand-white"
+                  }`}
+                  aria-expanded={isOpen}
+                  aria-controls={`${item.key}-content`}
+                  aria-label={isOpen ? `${item.label} 닫기` : `${item.label} 보기`}
+                >
+                  {isOpen ? "-" : "+"}
+                </button>
+              </div>
+
+              {isOpen ? (
+                <div
+                  id={`${item.key}-content`}
+                  className="mt-1 rounded-[14px] border border-line bg-brand-black/40 px-4 py-3 text-xs leading-6 text-muted"
+                >
+                  <div className="space-y-3">
+                    {item.sections.map((section) => (
+                      <div key={section.title ?? section.items.join("/")}>
+                        {section.title ? (
+                          <p className="mb-1.5 font-medium text-brand-white">
+                            {section.title}
+                          </p>
+                        ) : null}
+                        <ul className="space-y-1.5">
+                          {section.items.map((content) => (
+                            <li key={content} className="flex gap-2">
+                              <span aria-hidden="true">-</span>
+                              <span>{content}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
