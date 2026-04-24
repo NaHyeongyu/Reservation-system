@@ -80,7 +80,7 @@ begin
      and applicant_gender = p_gender
      and status in ('pending', 'confirmed', 'completed');
 
-  insert into public.reservations (
+  insert into public.reservations as inserted_reservation (
     branch_id,
     party_id,
     source,
@@ -119,7 +119,7 @@ begin
     v_now,
     v_now
   )
-  returning id, reservation_code, status
+  returning inserted_reservation.id, inserted_reservation.reservation_code, inserted_reservation.status
     into reservation_id, reservation_code, reservation_status;
 
   insert into public.participants (
