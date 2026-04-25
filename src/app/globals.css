@@ -62,10 +62,30 @@ button {
   animation: draw-reservation-check 1.2s ease-out forwards;
 }
 
+.featured-hero-title {
+  font-size: 1.65rem;
+}
+
 .featured-typing-line {
-  display: inline-block;
+  display: inline-grid;
+  grid-template-areas: "line";
   justify-self: center;
-  max-width: max-content;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.featured-typing-line__sizer,
+.featured-typing-line__reveal {
+  grid-area: line;
+}
+
+.featured-typing-line__sizer {
+  visibility: hidden;
+}
+
+.featured-typing-line__reveal {
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   opacity: 0;
   width: 0;
@@ -73,7 +93,7 @@ button {
   border-right: 0.08em solid transparent;
 }
 
-.featured-typing-line--lead {
+.featured-typing-line--lead .featured-typing-line__reveal {
   animation:
     featured-typewriter var(--typing-duration) steps(var(--typing-characters), end)
       var(--typing-delay) forwards,
@@ -81,7 +101,7 @@ button {
       forwards;
 }
 
-.featured-typing-line--final {
+.featured-typing-line--final .featured-typing-line__reveal {
   animation:
     featured-typewriter var(--typing-duration) steps(var(--typing-characters), end)
       var(--typing-delay) forwards,
@@ -102,7 +122,7 @@ button {
 
   to {
     opacity: 1;
-    width: calc(var(--typing-characters) * 1em);
+    width: 100%;
   }
 }
 
@@ -129,11 +149,29 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .featured-typing-line {
+  .featured-typing-line__reveal {
     animation: none;
     opacity: 1;
-    width: auto;
+    width: 100%;
     border-right: 0;
+  }
+}
+
+@media (min-width: 360px) {
+  .featured-hero-title {
+    font-size: 1.8rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .featured-hero-title {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .featured-hero-title {
+    font-size: 4rem;
   }
 }
 

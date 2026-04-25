@@ -54,12 +54,13 @@ export function FeaturedPartyLanding({ party }: FeaturedPartyLandingProps) {
           alt={`${party.branchName} 파티 포스터`}
           fill
           priority
-          className="object-cover object-center brightness-[0.68] contrast-110 saturate-[0.95]"
+          sizes="100vw"
+          className="object-cover object-[52%_center] brightness-[0.68] contrast-110 saturate-[0.95] sm:object-center"
         />
         <div className="absolute inset-0 bg-black/58" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,0,0,0.12)_0%,transparent_32%),linear-gradient(180deg,rgba(0,0,0,0.1)_0%,rgba(0,0,0,0.52)_72%,rgba(0,0,0,0.86)_100%)]" />
 
-        <div className="relative mx-auto grid min-h-[100svh] w-full max-w-4xl content-center justify-items-center px-6 py-12 text-center sm:px-10">
+        <div className="relative mx-auto grid min-h-[100svh] w-full max-w-4xl content-center justify-items-center px-4 py-12 text-center sm:px-10">
           <Image
             src={BRAND_LOGO_SRC}
             alt={BRAND_LOGO_ALT}
@@ -69,19 +70,19 @@ export function FeaturedPartyLanding({ party }: FeaturedPartyLandingProps) {
             className="h-auto w-12 object-contain drop-shadow-[0_14px_34px_rgba(255,0,0,0.28)] sm:w-14"
           />
 
-          <h1 className="mt-10 grid gap-2 text-balance text-[clamp(1.9rem,5.8vw,4rem)] font-bold leading-[1.18] tracking-[-0.012em] text-brand-white/88 drop-shadow-[0_16px_38px_rgba(0,0,0,0.5)] sm:gap-3">
-            <span
-              className="featured-typing-line featured-typing-line--lead"
+          <h1 className="featured-hero-title mx-auto mt-10 grid w-full max-w-full justify-items-center gap-2 text-balance font-bold leading-[1.18] tracking-normal text-brand-white/88 drop-shadow-[0_16px_38px_rgba(0,0,0,0.5)] sm:gap-3">
+            <TypingLine
+              className="featured-typing-line--lead"
               style={headlineFirstLineStyle}
             >
               {headlineFirstLine}
-            </span>
-            <span
-              className="featured-typing-line featured-typing-line--final"
+            </TypingLine>
+            <TypingLine
+              className="featured-typing-line--final"
               style={headlineSecondLineStyle}
             >
               {headlineSecondLine}
-            </span>
+            </TypingLine>
           </h1>
 
           <div className="mt-24 grid w-full max-w-lg gap-4 py-4 text-center sm:mt-28 sm:grid-cols-2 sm:gap-6">
@@ -126,6 +127,31 @@ export function FeaturedPartyLanding({ party }: FeaturedPartyLandingProps) {
         </div>
       </section>
     </main>
+  );
+}
+
+function TypingLine({
+  children,
+  className,
+  style,
+}: {
+  children: string;
+  className: string;
+  style: TypingLineStyle;
+}) {
+  return (
+    <span
+      aria-label={children}
+      className={["featured-typing-line", className].join(" ")}
+      style={style}
+    >
+      <span aria-hidden="true" className="featured-typing-line__sizer">
+        {children}
+      </span>
+      <span aria-hidden="true" className="featured-typing-line__reveal">
+        {children}
+      </span>
+    </span>
   );
 }
 
