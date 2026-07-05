@@ -5,5 +5,5 @@ type PublicLayoutProps = {
 };
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
-  return <div data-theme="public" className="min-h-full bg-brand-black">{children}</div>;
+  return <div data-theme="public" className="min-h-screen bg-black">{children}</div>;
 }

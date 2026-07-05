@@ -20,7 +20,8 @@ export function FeaturedPartyLanding(_props: FeaturedPartyLandingProps) {
   void _props;
 
   return (
-    <main className="min-h-[100svh] overflow-x-hidden bg-black text-[#fffaf4]">
+    <main className="relative min-h-[100svh] overflow-x-hidden bg-black text-[#fffaf4]">
+      <div className="fixed inset-0 -z-50 bg-black" aria-hidden="true" />
       <section className="relative isolate min-h-[100svh] overflow-hidden bg-black">
         <div className="absolute inset-0 -z-30">
           <Image
