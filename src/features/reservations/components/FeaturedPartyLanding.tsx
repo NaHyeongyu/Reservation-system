@@ -20,21 +20,23 @@ export function FeaturedPartyLanding(_props: FeaturedPartyLandingProps) {
   void _props;
 
   return (
-    <main className="h-[100svh] overflow-hidden bg-[#120b08] text-[#fffaf4]">
-      <section className="relative isolate h-[100svh] overflow-hidden">
-        <Image
-          src="/suwon-background.jpeg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="absolute inset-0 -z-30 object-contain object-top"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 -z-20 bg-[#0b0503]/52" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(10,5,3,0.42)_0%,rgba(10,5,3,0.2)_34%,rgba(10,5,3,0.62)_76%,rgba(10,5,3,0.88)_100%)]" />
+    <main className="min-h-[100svh] overflow-x-hidden bg-black text-[#fffaf4]">
+      <section className="relative isolate min-h-[100svh] overflow-hidden bg-black">
+        <div className="absolute inset-0 -z-30">
+          <Image
+            src="/suwon-background.jpeg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="absolute inset-0 -z-20 bg-black/52" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(0,0,0,0.46)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.64)_76%,rgba(0,0,0,0.9)_100%)]" />
 
-        <div className="relative mx-auto flex h-[100svh] w-full max-w-3xl flex-col items-center overflow-hidden px-5 pb-20 pt-17 text-center sm:px-8 sm:pb-24 sm:pt-24">
+        <div className="relative mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col items-center px-5 pb-28 pt-17 text-center sm:px-8 sm:pb-32 sm:pt-24">
           <div className="flex flex-col items-center">
             <Image
               src={BRAND_LOGO_SRC}
