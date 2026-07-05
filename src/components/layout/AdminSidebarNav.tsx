@@ -3,7 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
+import {
+  BRAND_LOGO_ALT,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_SRC,
+  BRAND_LOGO_WIDTH,
+} from "@/lib/branding";
 
 type NavigationItem = {
   href: string;
@@ -42,8 +47,8 @@ export function AdminSidebarNav({
             <Image
               src={BRAND_LOGO_SRC}
               alt={BRAND_LOGO_ALT}
-              width={427}
-              height={584}
+              width={BRAND_LOGO_WIDTH}
+              height={BRAND_LOGO_HEIGHT}
               priority
               className="h-auto w-7 shrink-0 object-contain"
             />
@@ -64,8 +69,8 @@ export function AdminSidebarNav({
             <Image
               src={BRAND_LOGO_SRC}
               alt={BRAND_LOGO_ALT}
-              width={427}
-              height={584}
+              width={BRAND_LOGO_WIDTH}
+              height={BRAND_LOGO_HEIGHT}
               priority
               className="h-auto w-8 shrink-0 object-contain"
             />
@@ -107,8 +112,8 @@ export function AdminSidebarNav({
                 <Image
                   src={BRAND_LOGO_SRC}
                   alt={BRAND_LOGO_ALT}
-                  width={427}
-                  height={584}
+                  width={BRAND_LOGO_WIDTH}
+                  height={BRAND_LOGO_HEIGHT}
                   priority
                   className="h-auto w-8 shrink-0 object-contain"
                 />

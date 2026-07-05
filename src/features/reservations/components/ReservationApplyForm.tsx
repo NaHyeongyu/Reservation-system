@@ -24,6 +24,13 @@ const initialState = {
   errorMessage: null,
 };
 
+const darkPanelClassName =
+  "rounded-[26px] border border-white/10 bg-[#111111]/86 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.28)]";
+const fieldLabelClassName =
+  "flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-[#d8a06f] uppercase";
+const inputClassName =
+  "mt-2 w-full rounded-[16px] border border-white/10 bg-[#050505] px-4 py-3 text-sm text-[#fffaf4] outline-none transition placeholder:text-[#fffaf4]/36 focus:border-[#d8a06f]/70 focus:bg-[#090909]";
+
 export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
   const [state, formAction] = useActionState(
     createPublicReservationAction,
@@ -59,49 +66,53 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
   }
 
   return (
-    <main className="flex min-h-screen flex-1">
+    <main className="flex min-h-screen flex-1 bg-[#050505] text-[#fffaf4]">
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
         <header className="mb-5">
-          <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
-            Application
-          </p>
-          <h1 className="mt-3 text-[28px] font-black leading-tight text-brand-white">
+          <div className="h-[13px]" aria-hidden="true" />
+          <h1 className="mt-3 text-[28px] font-black leading-tight text-[#fffaf4]">
             파티 신청서
           </h1>
-          <p className="mt-2 text-sm leading-6 text-muted">
+          <p className="mt-2 text-sm leading-6 text-[#fffaf4]/62">
             {formatPublicDateLabel(party.startAt)} ·{" "}
             {formatPublicTimeLabel(party.startAt, party.endAt)}
           </p>
         </header>
 
-        <section className="rounded-[26px] border border-line bg-surface px-4 py-4">
-          <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+        <section className={darkPanelClassName}>
+          <p className="text-[11px] font-medium tracking-[0.16em] text-[#d8a06f] uppercase">
             파티 정보
           </p>
           <div className="mt-3 space-y-3 text-sm">
             <div>
-              <p className="text-muted">파티 날짜</p>
-              <p className="mt-1 text-brand-white">
+              <p className="text-[#fffaf4]/58">지점명</p>
+              <p className="mt-1 text-[#fffaf4]">지문인식 {party.branchName}</p>
+            </div>
+            {party.branchAddress ? (
+              <div>
+                <p className="text-[#fffaf4]/58">주소</p>
+                <p className="mt-1 break-words text-[#fffaf4]">
+                  {party.branchAddress}
+                </p>
+              </div>
+            ) : null}
+            <div>
+              <p className="text-[#fffaf4]/58">파티 날짜</p>
+              <p className="mt-1 text-[#fffaf4]">
                 {formatPublicDateLabel(party.startAt)}
               </p>
             </div>
             <div>
-              <p className="text-muted">진행 시간</p>
-              <p className="mt-1 text-brand-white">
+              <p className="text-[#fffaf4]/58">진행 시간</p>
+              <p className="mt-1 text-[#fffaf4]">
                 {formatPublicTimeLabel(party.startAt, party.endAt)}
               </p>
             </div>
-            {party.branchAddress ? (
-              <div>
-                <p className="text-muted">주소</p>
-                <p className="mt-1 text-brand-white">{party.branchAddress}</p>
-              </div>
-            ) : null}
           </div>
-          <div className="mt-4 flex justify-end border-t border-line pt-4">
+          <div className="mt-4 flex justify-end border-t border-white/10 pt-4">
             <Link
               href="/"
-              className="text-xs font-medium tracking-[0.08em] text-muted transition hover:text-brand-white"
+              className="text-xs font-medium tracking-[0.08em] text-[#fffaf4]/54 transition hover:text-[#fffaf4]"
             >
               파티 소개로 돌아가기
             </Link>
@@ -121,23 +132,25 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
             value={privacyAgreed ? "true" : "false"}
           />
 
-          <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
+          <section className={`mt-5 ${darkPanelClassName}`}>
             <div className="space-y-4">
               <div>
-                <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+                <p className="text-[11px] font-medium tracking-[0.16em] text-[#d8a06f] uppercase">
                   개인 정보 입력
                 </p>
               </div>
 
               <fieldset className="block">
-                <legend className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                <legend className={fieldLabelClassName}>
                   <span>성별</span>
-                  <span className="text-brand-red">*</span>
+                  <span className="text-[#d8a06f]">*</span>
                 </legend>
                 <div className="mt-2 grid grid-cols-2 gap-3">
                   <label
-                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
-                      gender === "male" ? "border-brand-orange" : "border-line"
+                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-[#050505] px-4 py-3 text-sm text-[#fffaf4] transition ${
+                      gender === "male"
+                        ? "border-[#d8a06f]"
+                        : "border-white/10"
                     }`}
                   >
                     <input
@@ -147,13 +160,15 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                       required
                       checked={gender === "male"}
                       onChange={() => setGender("male")}
-                      className="h-4 w-4 accent-brand-orange"
+                      className="h-4 w-4 accent-[#d8a06f]"
                     />
                     <span>남</span>
                   </label>
                   <label
-                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-brand-black px-4 py-3 text-sm text-brand-white transition ${
-                      gender === "female" ? "border-brand-orange" : "border-line"
+                    className={`flex items-center justify-center gap-2 rounded-[16px] border bg-[#050505] px-4 py-3 text-sm text-[#fffaf4] transition ${
+                      gender === "female"
+                        ? "border-[#d8a06f]"
+                        : "border-white/10"
                     }`}
                   >
                     <input
@@ -163,22 +178,22 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                       required
                       checked={gender === "female"}
                       onChange={() => setGender("female")}
-                      className="h-4 w-4 accent-brand-orange"
+                      className="h-4 w-4 accent-[#d8a06f]"
                     />
                     <span>여</span>
                   </label>
                 </div>
                 {isWaitlistExpected ? (
-                  <p className="mt-3 text-sm text-brand-red">
+                  <p className="mt-3 text-sm text-[#ffb7a0]">
                     현재 선택한 성별 정원이 차 있어 대기 접수로 들어갑니다.
                   </p>
                 ) : null}
               </fieldset>
 
               <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                <span className={fieldLabelClassName}>
                   <span>생년</span>
-                  <span className="text-brand-red">*</span>
+                  <span className="text-[#d8a06f]">*</span>
                 </span>
                 <input
                   id="birthYear"
@@ -192,22 +207,22 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                   placeholder="2001"
                   value={birthYear}
                   onChange={(event) => setBirthYear(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                  className={inputClassName}
                 />
               </label>
 
               <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                <span className={fieldLabelClassName}>
                   <span>이름</span>
-                  <span className="text-brand-red">*</span>
+                  <span className="text-[#d8a06f]">*</span>
                 </span>
                 <FieldDescription>
                   <p>
-                    신청자, 입금자, 신분증 이름이 미일치하면 입금 확인 및 입장이
+                    신청자, 입금자, 신분증 이름 미일치 시 입금확인 및 입장이
                     어렵습니다.
                   </p>
                   <p>
-                    신청서는 1인당 1개씩 필수 작성 부탁드립니다. 일행과 동반 시
+                    신청서는 1인 1개씩 필수 작성 부탁드립니다. 일행과 동반 시
                     각각 작성해주세요.
                   </p>
                 </FieldDescription>
@@ -219,14 +234,14 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                   placeholder="이름을 입력하세요"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                  className={inputClassName}
                 />
               </label>
 
               <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                <span className={fieldLabelClassName}>
                   <span>인스타그램 ID</span>
-                  <span className="text-brand-red">*</span>
+                  <span className="text-[#d8a06f]">*</span>
                 </span>
                 <input
                   id="instagramId"
@@ -240,14 +255,14 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                   placeholder="@party_account"
                   value={instagramId}
                   onChange={(event) => setInstagramId(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                  className={inputClassName}
                 />
               </label>
 
               <label className="block">
-                <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                <span className={fieldLabelClassName}>
                   <span>전화번호</span>
-                  <span className="text-brand-red">*</span>
+                  <span className="text-[#d8a06f]">*</span>
                 </span>
                 <FieldDescription>
                   추후 본인 확인 및 파티 안내 용도로 사용됩니다.
@@ -260,15 +275,15 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                   placeholder="010-0000-0000"
                   value={phoneNumber}
                   onChange={(event) => setPhoneNumber(event.target.value)}
-                  className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                  className={inputClassName}
                 />
               </label>
 
               <div className="grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
                 <label className="block">
-                  <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span className={fieldLabelClassName}>
                     <span>환불 은행</span>
-                    <span className="text-brand-red">*</span>
+                    <span className="text-[#d8a06f]">*</span>
                   </span>
                   <FieldDescription>
                     환불 업무에 사용됩니다.
@@ -281,14 +296,14 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                     placeholder="은행명을 입력하세요"
                     value={bankName}
                     onChange={(event) => setBankName(event.target.value)}
-                    className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                    className={inputClassName}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="flex items-center gap-1 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+                  <span className={fieldLabelClassName}>
                     <span>환불 계좌번호</span>
-                    <span className="text-brand-red">*</span>
+                    <span className="text-[#d8a06f]">*</span>
                   </span>
                   <FieldDescription>
                     환불 업무에 사용됩니다.
@@ -301,7 +316,7 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
                     placeholder="계좌번호를 입력하세요"
                     value={accountNumber}
                     onChange={(event) => setAccountNumber(event.target.value)}
-                    className="mt-2 w-full rounded-[16px] border border-line bg-brand-black px-4 py-3 text-sm text-brand-white outline-none transition placeholder:text-muted focus:border-brand-orange/60"
+                    className={inputClassName}
                   />
                 </label>
               </div>
@@ -322,7 +337,7 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
             </div>
           ) : null}
 
-          <p className="mt-4 px-1 text-xs leading-5 text-muted">
+          <p className="mt-4 px-1 text-xs leading-5 text-[#fffaf4]/56">
             제출 시점에 같은 성별 신청이 먼저 마감되면 대기자로 접수될 수 있습니다.
           </p>
 
@@ -340,7 +355,7 @@ export function ReservationApplyForm({ party }: ReservationApplyFormProps) {
 
 function FieldDescription({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-2 space-y-1 border-l-2 border-brand-orange/70 pl-3 text-[11px] leading-5 text-brand-white/75">
+    <div className="mt-2 space-y-1 border-l-2 border-[#d8a06f]/70 pl-3 text-[11px] leading-5 text-[#fffaf4]/64">
       {children}
     </div>
   );
@@ -363,10 +378,13 @@ function SubmitButton({
       style={reservationPrimaryButtonStyle}
       className={
         isDisabled
-          ? [reservationDisabledButtonClassName, "bg-brand-red/25"].join(" ")
+          ? [
+              reservationDisabledButtonClassName,
+              "bg-[#6f371b]/28 text-[#fffaf4]/46",
+            ].join(" ")
           : [
               reservationPrimaryButtonClassName,
-              "bg-brand-red hover:bg-brand-red/90",
+              "border border-[#d8a06f]/38 bg-[#1b1b1b] shadow-[0_12px_28px_rgba(0,0,0,0.32)] hover:bg-[#242424]",
             ].join(" ")
       }
     >

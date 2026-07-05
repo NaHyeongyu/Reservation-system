@@ -3,7 +3,12 @@
 import Image from "next/image";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
+import {
+  BRAND_LOGO_ALT,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_SRC,
+  BRAND_LOGO_WIDTH,
+} from "@/lib/branding";
 import { signInAdminAccountAction } from "../_actions/sign-in-admin-account";
 
 const initialState = {
@@ -22,8 +27,8 @@ export function AdminLoginForm() {
         <Image
           src={BRAND_LOGO_SRC}
           alt={BRAND_LOGO_ALT}
-          width={427}
-          height={584}
+          width={BRAND_LOGO_WIDTH}
+          height={BRAND_LOGO_HEIGHT}
           priority
           className="h-auto w-9 shrink-0 object-contain"
         />

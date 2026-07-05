@@ -9,8 +9,8 @@ export type FeaturedPublicPartyTimelineItem = {
 };
 
 export const FEATURED_PUBLIC_PARTY = {
-  dateKey: "2026-05-05",
-  branchKeyword: "제주",
+  dateKey: "2026-07-10",
+  branchKeyword: "수원행궁",
 } as const;
 
 export const FEATURED_PUBLIC_PARTY_TIMELINE: FeaturedPublicPartyTimelineItem[] = [

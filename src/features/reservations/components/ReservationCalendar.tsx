@@ -5,7 +5,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
-import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from "@/lib/branding";
+import {
+  BRAND_LOGO_ALT,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_SRC,
+  BRAND_LOGO_WIDTH,
+} from "@/lib/branding";
 import type { PublicPartyOption } from "@/features/reservations/shared";
 import { getPublicDateKey } from "@/features/reservations/shared";
 import { useCalendarMonth } from "../hooks/useCalendarMonth";
@@ -85,8 +90,8 @@ export function ReservationCalendar({ partyOptions }: ReservationCalendarProps) 
             <Image
               src={BRAND_LOGO_SRC}
               alt={BRAND_LOGO_ALT}
-              width={427}
-              height={584}
+              width={BRAND_LOGO_WIDTH}
+              height={BRAND_LOGO_HEIGHT}
               priority
               className="h-auto w-14 object-contain sm:w-16"
             />

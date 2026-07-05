@@ -1145,27 +1145,32 @@ function formatBankAccount(bankName: string | null, accountNumber: string | null
 }
 
 function formatConsoleDate(value: string) {
-  return new Date(value).toLocaleDateString("ko-KR", {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     month: "2-digit",
     day: "2-digit",
     weekday: "short",
-  });
+  }).format(new Date(value));
 }
 
 function formatConsoleDateTime(value: string) {
-  return new Date(value).toLocaleString("ko-KR", {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    hourCycle: "h23",
+  }).format(new Date(value));
 }
 
 function formatConsoleTime(value: string) {
-  return new Date(value).toLocaleTimeString("ko-KR", {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    hourCycle: "h23",
+  }).format(new Date(value));
 }
 
 function formatTimeInput(value: string) {

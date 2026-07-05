@@ -20,8 +20,8 @@ const consentItems: {
     sections: [
       {
         items: [
-          "파티일 기준 4일 전까지 취소 시: 전액 환불",
-          "파티일 기준 3일 전 - 당일 취소 시: 환불 및 변경 불가 (노쇼 포함)",
+          "파티일 기준 5일 - 당일 취소 시: 환불 및 변경 불가 (노쇼 포함)",
+          "최소 인원 10명 미충족 시 파티가 취소될 수 있으며, 이 경우 환불 처리가 진행됩니다.",
           "입장 시 신분증을 확인하니 신분증 필수 지참해주시기 바랍니다. (미성년자 이용방지)",
           "파티 진행 중 일부 시간 현장 촬영이 있을 수 있습니다. 얼굴은 블러 처리가 적용되며, 해당 이미지 및 영상은 마케팅 목적으로 활용될 수 있습니다.",
           "행사 중 발생한 사고의 민형사상 책임은 본인에게 있으며 물품 손괴 시 원가배상을 원칙으로 합니다.",
@@ -97,12 +97,12 @@ export function ReservationConsentSection({
   }
 
   return (
-    <section className="mt-5 rounded-[26px] border border-line bg-surface px-4 py-4">
-      <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">
+    <section className="mt-5 rounded-[26px] border border-white/10 bg-[#111111]/86 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
+      <p className="text-[11px] font-medium tracking-[0.16em] text-[#d8a06f] uppercase">
         동의
       </p>
 
-      <label className="mt-3 flex cursor-pointer items-center gap-3 py-1">
+      <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-[16px] bg-white/[0.03] px-3 py-3">
         <input
           type="checkbox"
           checked={allAgreed}
@@ -112,18 +112,18 @@ export function ReservationConsentSection({
         <span
           className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${
             allAgreed
-              ? "border-brand-orange bg-brand-orange text-brand-white"
-              : "border-line text-transparent"
+              ? "border-[#d8a06f] bg-[#9c5a31] text-[#fffaf4]"
+              : "border-white/15 text-transparent"
           }`}
         >
           ✓
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-brand-white">전체 동의</p>
+          <p className="text-sm font-medium text-[#fffaf4]">전체 동의</p>
         </div>
       </label>
 
-      <div className="mt-3 space-y-1 border-t border-line pt-3">
+      <div className="mt-2 space-y-1 rounded-[18px] bg-[#050505]/42 px-3 py-2">
         {consentItems.map((item) => {
           const isAgreed = getAgreementState(item.key);
           const isOpen = openedConsent === item.key;
@@ -131,7 +131,7 @@ export function ReservationConsentSection({
           return (
             <div key={item.key} className="py-1">
               <div className="flex items-center gap-3">
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2 pl-3">
                   <input
                     type="checkbox"
                     checked={isAgreed}
@@ -143,15 +143,15 @@ export function ReservationConsentSection({
                   <span
                     className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition ${
                       isAgreed
-                        ? "border-brand-orange bg-brand-orange text-brand-white"
-                        : "border-line text-transparent"
+                        ? "border-[#d8a06f] bg-[#9c5a31] text-[#fffaf4]"
+                        : "border-white/15 text-transparent"
                     }`}
                   >
                     ✓
                   </span>
-                  <span className="flex min-w-0 items-center gap-1 text-sm text-brand-white">
+                  <span className="flex min-w-0 items-center gap-1 text-sm text-[#fffaf4]">
                     <span className="truncate">{item.label}</span>
-                    <span className="text-brand-red">*</span>
+                    <span className="text-[#d8a06f]">*</span>
                   </span>
                 </label>
 
@@ -160,8 +160,8 @@ export function ReservationConsentSection({
                   onClick={() => handleToggleConsent(item.key)}
                   className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs transition ${
                     isOpen
-                      ? "border-brand-orange/50 text-brand-white"
-                      : "border-line text-muted hover:border-brand-orange/35 hover:text-brand-white"
+                      ? "border-[#d8a06f]/55 text-[#fffaf4]"
+                      : "border-white/15 text-[#fffaf4]/56 hover:border-[#d8a06f]/45 hover:text-[#fffaf4]"
                   }`}
                   aria-expanded={isOpen}
                   aria-controls={`${item.key}-content`}
@@ -174,13 +174,13 @@ export function ReservationConsentSection({
               {isOpen ? (
                 <div
                   id={`${item.key}-content`}
-                  className="mt-1 rounded-[14px] border border-line bg-brand-black/40 px-4 py-3 text-xs leading-6 text-muted"
+                  className="ml-10 mt-1 rounded-[14px] border border-white/10 bg-[#050505] px-4 py-3 text-xs leading-6 text-[#fffaf4]/58"
                 >
                   <div className="space-y-3">
                     {item.sections.map((section) => (
                       <div key={section.title ?? section.items.join("/")}>
                         {section.title ? (
-                          <p className="mb-1.5 font-medium text-brand-white">
+                          <p className="mb-1.5 font-medium text-[#fffaf4]">
                             {section.title}
                           </p>
                         ) : null}
